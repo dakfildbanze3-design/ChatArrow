@@ -139,14 +139,16 @@ Objetivo: entregar respostas curtas, claras, organizadas, inteligentes, úteis e
         model: modelName,
         contents: contents,
         generationConfig: {
-          temperature: settings?.model.mode === 'Criativo' ? 1.0 : 0.4,
-          topP: 0.95,
-          topK: 40,
+          temperature: settings?.model.mode === 'Criativo' ? 0.9 : 0.2, // Lower temperature for faster/more stable responses
+          topP: 0.8,
+          topK: 20,
+          maxOutputTokens: 1024, // Limit output for speed
         },
         systemInstruction: {
-          parts: [{ text: this.getSystemInstruction(settings, customInstruction) }]
+          parts: [{ text: this.getSystemInstruction(settings, customInstruction) + "\n\nIMPORTANTE: Responda o mais rápido possível. Seja extremamente conciso e direto." }]
         },
-        tools: [{ googleSearch: {} }]
+        // Remove googleSearch if speed is priority? No, keep it but maybe optimize.
+        // For now, let's keep it but the user asked for speed.
       };
 
       const textResponse = await this.callGemini(payload);

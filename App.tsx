@@ -420,13 +420,12 @@ const App: React.FC = () => {
                   ))}
 
                   {state.isLoading && (
-                    <div className="flex items-center gap-2 text-zinc-400 dark:text-gray-500 text-xs italic mb-8 animate-pulse ml-2">
-                      <div className="flex gap-1">
-                        <span className="w-1 h-1 bg-zinc-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-1 h-1 bg-zinc-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-1 h-1 bg-zinc-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <div className="flex items-center gap-2 mb-8 ml-2">
+                      <div className="flex gap-1.5">
+                        <span className="w-2.5 h-2.5 bg-zinc-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-2.5 h-2.5 bg-zinc-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-2.5 h-2.5 bg-zinc-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                       </div>
-                      Consultando Gemini & Google Search...
                     </div>
                   )}
 
