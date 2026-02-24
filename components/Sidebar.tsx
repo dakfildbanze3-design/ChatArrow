@@ -179,11 +179,11 @@ Regras:
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-2 overflow-y-auto space-y-4 custom-scrollbar">
+        <nav className="flex-1 px-4 py-2 overflow-y-auto space-y-2 custom-scrollbar">
           
           <button 
             onClick={() => { onNewChat(); onClose(); }}
-            className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-white/5 group transition-all"
+            className="flex items-center gap-3 w-full p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-white/5 group transition-all"
           >
             <div className="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-zinc-200 dark:group-hover:bg-white/10 transition-colors">
               <Edit3 className="w-5 h-5 text-zinc-900 dark:text-white" />
@@ -191,7 +191,7 @@ Regras:
             <span className="text-lg font-medium text-zinc-900 dark:text-white">Novo Chat</span>
           </button>
 
-          <div className="space-y-1">
+          <div className="space-y-2">
             {menuItems.map((item, idx) => (
               <button 
                 key={idx}
@@ -203,7 +203,7 @@ Regras:
                   }
                   onClose();
                 }}
-                className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-white/5 group transition-all"
+                className="flex items-center gap-3 w-full p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-white/5 group transition-all"
               >
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center">
                   <item.icon className="w-6 h-6 text-zinc-900 dark:text-white" />
