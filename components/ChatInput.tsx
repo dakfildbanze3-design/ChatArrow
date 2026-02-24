@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { PlusCircle, SendHorizontal, FileText, Image, Camera, X } from 'lucide-react';
+import { PlusCircle, SendHorizontal, FileText, Image, Camera, X, Mic } from 'lucide-react';
 
 interface ChatInputProps {
   onSendMessage: (text: string, images?: string[]) => void;
@@ -158,12 +158,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled })
             </div>
           )}
 
-          <div className="flex items-end gap-3 px-4 py-3 min-h-[50px]">
+          <div className="flex items-end gap-[3px] px-4 py-3 min-h-[50px]">
+            <button 
+              className="p-2 mb-0.5 rounded-full bg-gradient-to-tr from-zinc-400 to-zinc-600 dark:from-zinc-700 dark:to-zinc-900 text-white shadow-sm hover:opacity-90 transition-all flex-shrink-0"
+              title="Voz"
+            >
+              <Mic className="w-[23px] h-[23px]" />
+            </button>
+
             <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`p-1 mb-0.5 transition-all flex-shrink-0 ${isMenuOpen ? 'text-zinc-900 dark:text-white rotate-45' : 'text-zinc-400 dark:text-gray-400 hover:text-zinc-900 dark:hover:text-white'}`}
+              className={`p-2 mb-0.5 rounded-full bg-gradient-to-tr from-zinc-400 to-zinc-600 dark:from-zinc-700 dark:to-zinc-900 text-white shadow-sm hover:opacity-90 transition-all flex-shrink-0 ${isMenuOpen ? 'rotate-45' : ''}`}
             >
-              <PlusCircle className="w-6 h-6" strokeWidth={1.2} />
+              <PlusCircle className="w-[23px] h-[23px]" />
             </button>
             
             <textarea
@@ -174,19 +181,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled })
               onKeyDown={handleKeyDown}
               placeholder="Esteja à vontade ..."
               disabled={disabled}
-              className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-gray-500 py-0 resize-none min-h-[24px] text-[15px] leading-6 custom-scrollbar mb-0.5"
+              className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-gray-500 py-0 resize-none min-h-[24px] text-[15px] leading-6 custom-scrollbar mb-2"
             />
 
             <button 
               onClick={() => handleSubmit()}
               disabled={(!text.trim() && selectedImages.length === 0) || disabled}
-              className={`p-1.5 mb-0.5 rounded-full transition-all flex-shrink-0 ${
+              className={`p-2 mb-0.5 rounded-full shadow-sm transition-all flex-shrink-0 ${
                 (text.trim() || selectedImages.length > 0) && !disabled 
-                  ? 'text-zinc-900 dark:text-white' 
-                  : 'text-zinc-300 dark:text-gray-600 cursor-not-allowed'
+                  ? 'bg-gradient-to-tr from-blue-600 to-indigo-600 text-white hover:opacity-90' 
+                  : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-600 cursor-not-allowed'
               }`}
             >
-              <SendHorizontal className="w-5 h-5" strokeWidth={1.5} />
+              <SendHorizontal className="w-[23px] h-[23px]" />
             </button>
           </div>
         </div>
