@@ -72,56 +72,51 @@ const App: React.FC = () => {
 
   // Verificar sessão inicial e escutar mudanças
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        // getSession é mais rápido para inicialização pois lê do storage local
-        const { data: { session } } = await supabase.auth.getSession();
-        const currentUser = session?.user || null;
-        
-        if (currentUser) {
-          setUser(currentUser);
-          updateUserSettings(currentUser);
-          await loadData();
-        }
-      } catch (err) {
-        console.error('Erro ao inicializar auth:', err);
-      } finally {
-        setIsAuthLoading(false);
-      }
-    };
-
-    initAuth();
+    let isMounted = true;
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const currentUser = session?.user || null;
       
       if (currentUser) {
-        setUser(currentUser);
-        updateUserSettings(currentUser);
-        loadData();
-        setIsAuthLoading(false);
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setIsAuthLoading(false);
-        // Resetar estado apenas se deslogar manualmente
-        setState(prev => ({
-          ...prev,
-          conversations: [],
-          settings: {
-            ...prev.settings,
-            account: {
-              name: 'Convidado',
-              photo: 'https://ui-avatars.com/api/?name=Guest&background=333&color=fff',
-              email: ''
+        if (isMounted) {
+          // Só atualiza e carrega se o usuário mudou ou se for um evento de login/refresh
+          setUser(prevUser => {
+            if (prevUser?.id !== currentUser.id) {
+              updateUserSettings(currentUser);
+              loadData();
             }
-          }
-        }));
-      } else if (event === 'TOKEN_REFRESHED') {
-        console.log('Sessão renovada com sucesso');
+            return currentUser;
+          });
+          setIsAuthLoading(false);
+        }
+      } else if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !session)) {
+        if (isMounted) {
+          setUser(null);
+          setIsAuthLoading(false);
+          // Resetar estado apenas se deslogar manualmente ou se não houver sessão inicial
+          setState(prev => ({
+            ...prev,
+            conversations: [],
+            settings: {
+              ...prev.settings,
+              account: {
+                name: 'Convidado',
+                photo: 'https://ui-avatars.com/api/?name=Guest&background=333&color=fff',
+                email: ''
+              }
+            }
+          }));
+        }
+      } else {
+        // Para outros eventos sem sessão (como falha no refresh), garantimos que o loading pare
+        if (isMounted) setIsAuthLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const updateUserSettings = (user: User) => {
@@ -147,17 +142,37 @@ const App: React.FC = () => {
     setState(prev => ({ ...prev, conversations: history }));
   };
 
-  // Apply theme to document
+  // Sincronizar estado com o Hash da URL
   useEffect(() => {
-    const root = window.document.documentElement;
-    if (state.settings.appearance.theme === 'Claro') {
-      root.classList.remove('dark');
-      root.classList.add('light');
-    } else {
-      root.classList.remove('light');
-      root.classList.add('dark');
-    }
-  }, [state.settings.appearance.theme]);
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash === '#settings') {
+        setState(prev => ({ ...prev, showSettings: true }));
+        setShowBilling(false);
+      } else if (hash === '#billing') {
+        setShowBilling(true);
+        setState(prev => ({ ...prev, showSettings: false }));
+      } else {
+        setState(prev => ({ ...prev, showSettings: false }));
+        setShowBilling(false);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    handleHashChange(); // Verificar no carregamento inicial
+
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const handleCloseSettings = () => {
+    setState(prev => ({ ...prev, showSettings: false }));
+    if (window.location.hash === '#settings') window.location.hash = '';
+  };
+
+  const handleCloseBilling = () => {
+    setShowBilling(false);
+    if (window.location.hash === '#billing') window.location.hash = '';
+  };
 
   const scrollToBottom = () => {
     if (scrollRef.current) {
@@ -350,8 +365,8 @@ const App: React.FC = () => {
             conversations={state.conversations}
             onLoadConversation={handleLoadConversation}
             activeChatId={state.currentId}
-            onOpenSettings={() => setState(prev => ({ ...prev, showSettings: true }))}
-            onOpenBilling={() => setShowBilling(true)}
+            onOpenSettings={() => window.location.hash = 'settings'}
+            onOpenBilling={() => window.location.hash = 'billing'}
             user={user}
             onLoginClick={() => setShowAuth(true)}
           />
@@ -360,14 +375,14 @@ const App: React.FC = () => {
             <Settings 
               settings={state.settings}
               onUpdate={handleUpdateSettings}
-              onClose={() => setState(prev => ({ ...prev, showSettings: false }))}
-              onOpenBilling={() => setShowBilling(true)}
+              onClose={handleCloseSettings}
+              onOpenBilling={() => window.location.hash = 'billing'}
             />
           )}
 
           {showBilling && (
             <Billing 
-              onClose={() => setShowBilling(false)} 
+              onClose={handleCloseBilling} 
               currentPlan={state.settings.plan} 
             />
           )}
@@ -376,6 +391,9 @@ const App: React.FC = () => {
             <Header 
               onMenuClick={() => setIsSidebarOpen(true)} 
               activeCategory={state.activeCategory}
+              user={user}
+              onLoginClick={() => setShowAuth(true)}
+              currentScreen={state.showSettings ? 'Configurações' : showBilling ? 'Faturamento' : undefined}
             />
             
             <main 

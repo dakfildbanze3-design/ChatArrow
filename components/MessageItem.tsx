@@ -130,7 +130,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, settings }) =
   };
 
   return (
-    <div className="flex flex-col w-full mb-12 justify-start pl-6 ml-2 md:ml-0 animate-in fade-in duration-500 group/msg">
+    <div className="flex flex-col w-full mb-12 justify-start animate-in fade-in duration-500 group/msg">
       
       <div className={`w-full prose max-w-none ${settings?.appearance.theme === 'Claro' ? 'prose-zinc' : 'prose-invert'}`}>
         <ReactMarkdown components={markdownComponents}>

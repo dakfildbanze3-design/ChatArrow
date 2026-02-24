@@ -179,7 +179,7 @@ Regras:
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-2 overflow-y-auto space-y-2 custom-scrollbar">
+        <nav className="flex-1 px-4 py-2 overflow-y-auto space-y-0.5 custom-scrollbar">
           
           <button 
             onClick={() => { onNewChat(); onClose(); }}
@@ -191,11 +191,13 @@ Regras:
             <span className="text-lg font-medium text-zinc-900 dark:text-white">Novo Chat</span>
           </button>
 
-          <div className="space-y-2">
+          <div className="space-y-0.5">
             {menuItems.map((item, idx) => (
-              <button 
+              <a 
                 key={idx}
-                onClick={() => {
+                href={item.label === 'Configurações' ? '#settings' : item.label === 'Faturamento' ? '#billing' : '#'}
+                onClick={(e) => {
+                  e.preventDefault();
                   if ((item as any).action) {
                     (item as any).action();
                   } else if (item.instruction) {
@@ -209,7 +211,7 @@ Regras:
                   <item.icon className="w-6 h-6 text-zinc-900 dark:text-white" />
                 </div>
                 <span className="text-lg font-medium text-zinc-700 dark:text-white/90 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">{item.label}</span>
-              </button>
+              </a>
             ))}
           </div>
 
@@ -249,7 +251,7 @@ Regras:
         </nav>
 
         <div className="p-6 bg-zinc-50 dark:bg-zinc-900/30 border-t border-zinc-100 dark:border-white/5">
-          {user ? (
+          {user && (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full overflow-hidden border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-zinc-800 shadow-inner">
@@ -279,14 +281,6 @@ Regras:
                 <LogOut className="w-5 h-5" />
               </button>
             </div>
-          ) : (
-            <button 
-              onClick={onLoginClick}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl font-medium hover:opacity-90 transition-opacity"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>Entrar / Cadastrar</span>
-            </button>
           )}
         </div>
       </div>

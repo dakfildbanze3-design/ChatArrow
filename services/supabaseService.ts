@@ -15,8 +15,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 
 export const supabaseService = {
   async getCurrentUser(): Promise<User | null> {
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user || null;
   },
 
   async fetchConversations(): Promise<Conversation[]> {
