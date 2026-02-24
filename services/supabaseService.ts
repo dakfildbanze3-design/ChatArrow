@@ -1,20 +1,33 @@
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, User } from '@supabase/supabase-js';
 import { Conversation, Message } from '../types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://gjhgaiaqqvotterthwuo.supabase.co';
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqaGdhaWFxcXZvdHRlcnRod3VvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA3MDEzNTIsImV4cCI6MjA4NjI3NzM1Mn0.KDlSGnRnnlsX_7yCZBo17p5KeROxP4xK7YA0IFf5K4M';
-const USER_ID = import.meta.env.VITE_USER_ID || 'gjhgaiaqqvotterthwuo'; 
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
 
 export const supabaseService = {
+  async getCurrentUser(): Promise<User | null> {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user;
+  },
+
   async fetchConversations(): Promise<Conversation[]> {
+    const user = await this.getCurrentUser();
+    if (!user) return [];
+
     const { data, error } = await supabase
       .from('conversations')
       .select('*')
-      .eq('user_id', USER_ID)
-      .order('last_updated', { ascending: false }); // Usando snake_case
+      .eq('user_id', user.id)
+      .order('last_updated', { ascending: false });
 
     if (error) {
       console.error('Erro ao buscar conversas:', error);
@@ -33,14 +46,14 @@ export const supabaseService = {
           id: conv.id,
           title: conv.title,
           category: conv.category,
-          systemInstruction: conv.system_instruction, // Mapeando snake_case para camelCase
-          lastUpdated: new Date(conv.last_updated), // Mapeando snake_case para camelCase
+          systemInstruction: conv.system_instruction,
+          lastUpdated: new Date(conv.last_updated),
           messages: (messages || []).map(m => ({
             id: m.id,
             role: m.role,
             text: m.text,
             images: m.images,
-            groundingUrls: m.grounding_urls, // Mapeando snake_case para camelCase
+            groundingUrls: m.grounding_urls,
             timestamp: new Date(m.timestamp)
           }))
         };
@@ -51,15 +64,18 @@ export const supabaseService = {
   },
 
   async upsertConversation(conv: Conversation): Promise<void> {
+    const user = await this.getCurrentUser();
+    if (!user) return; // Não salva se não estiver logado
+
     const { error: convError } = await supabase
       .from('conversations')
       .upsert({
         id: conv.id,
         title: conv.title,
         category: conv.category,
-        system_instruction: conv.systemInstruction, // Mapeando camelCase para snake_case
-        last_updated: new Date().toISOString(), // Mapeando camelCase para snake_case
-        user_id: USER_ID
+        system_instruction: conv.systemInstruction,
+        last_updated: new Date().toISOString(),
+        user_id: user.id
       });
 
     if (convError) {
@@ -83,7 +99,7 @@ export const supabaseService = {
             role: m.role,
             text: m.text,
             images: m.images || [],
-            grounding_urls: m.groundingUrls || [], // Mapeando camelCase para snake_case
+            grounding_urls: m.groundingUrls || [],
             timestamp: m.timestamp.toISOString()
           }))
         );
@@ -96,6 +112,9 @@ export const supabaseService = {
   },
 
   async deleteConversation(id: string): Promise<void> {
+    const user = await this.getCurrentUser();
+    if (!user) return;
+
     await supabase.from('messages').delete().eq('conversation_id', id);
     await supabase.from('conversations').delete().eq('id', id);
   }

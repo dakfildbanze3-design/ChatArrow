@@ -10,12 +10,14 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@google/genai": "^1.41.0",
+    "@supabase/supabase-js": "^2.48.1",
+    "@tailwindcss/vite": "^4.2.0",
     "lucide-react": "^0.564.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "@google/genai": "^1.41.0",
     "react-markdown": "^9.0.1",
-    "@supabase/supabase-js": "^2.48.1"
+    "tailwindcss": "^4.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

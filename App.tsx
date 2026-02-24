@@ -4,12 +4,20 @@ import { Header } from './components/Header';
 import { MessageItem } from './components/MessageItem';
 import { ChatInput } from './components/ChatInput';
 import { Sidebar } from './components/Sidebar';
-import { Message, ChatState, Conversation } from './types';
+import { Settings } from './components/Settings';
+import { Auth } from './components/Auth';
+import { Billing } from './components/Billing';
+import { Message, ChatState, Conversation, AppSettings } from './types';
 import { geminiService } from './services/geminiService';
-import { supabaseService } from './services/supabaseService';
+import { supabaseService, supabase } from './services/supabaseService';
 import { ArrowDown } from 'lucide-react';
+import { User } from '@supabase/supabase-js';
 
 const App: React.FC = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [showAuth, setShowAuth] = useState(false);
+  const [showBilling, setShowBilling] = useState(false);
   const [state, setState] = useState<ChatState>({
     currentId: crypto.randomUUID(),
     messages: [],
@@ -17,20 +25,139 @@ const App: React.FC = () => {
     error: null,
     currentSystemInstruction: undefined,
     activeCategory: undefined,
-    conversations: []
+    conversations: [],
+    showSettings: false,
+    settings: {
+      account: {
+        name: 'Convidado',
+        photo: 'https://ui-avatars.com/api/?name=Guest&background=333&color=fff',
+        email: ''
+      },
+      ai: {
+        language: 'Português',
+        style: 'Casual',
+        length: 'Média',
+        emojis: true,
+        personality: 'Amigo'
+      },
+      model: {
+        default: 'Gemini 3 Flash',
+        mode: 'Criativo',
+        memory: true
+      },
+      privacy: {
+        saveHistory: true
+      },
+      appearance: {
+        theme: 'Escuro',
+        primaryColor: '#3b82f6',
+        fontSize: 16
+      },
+      notifications: {
+        newResponse: true,
+        push: true,
+        sounds: true
+      },
+      plan: 'Free',
+      advanced: {
+        showTokens: false,
+        showTime: false,
+        showModel: false
+      }
+    }
   });
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Carregar conversas do Supabase no início
+  // Verificar sessão inicial e escutar mudanças
   useEffect(() => {
-    const loadData = async () => {
-      const history = await supabaseService.fetchConversations();
-      setState(prev => ({ ...prev, conversations: history }));
+    const initAuth = async () => {
+      try {
+        // getSession é mais rápido para inicialização pois lê do storage local
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUser = session?.user || null;
+        
+        if (currentUser) {
+          setUser(currentUser);
+          updateUserSettings(currentUser);
+          await loadData();
+        }
+      } catch (err) {
+        console.error('Erro ao inicializar auth:', err);
+      } finally {
+        setIsAuthLoading(false);
+      }
     };
-    loadData();
+
+    initAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const currentUser = session?.user || null;
+      
+      if (currentUser) {
+        setUser(currentUser);
+        updateUserSettings(currentUser);
+        loadData();
+        setIsAuthLoading(false);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setIsAuthLoading(false);
+        // Resetar estado apenas se deslogar manualmente
+        setState(prev => ({
+          ...prev,
+          conversations: [],
+          settings: {
+            ...prev.settings,
+            account: {
+              name: 'Convidado',
+              photo: 'https://ui-avatars.com/api/?name=Guest&background=333&color=fff',
+              email: ''
+            }
+          }
+        }));
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log('Sessão renovada com sucesso');
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  const updateUserSettings = (user: User) => {
+    const email = user.email || user.user_metadata.email || '';
+    const name = user.user_metadata.full_name || email.split('@')[0] || 'Usuário';
+    
+    setState(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        account: {
+          name,
+          photo: user.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${name}&background=333&color=fff`,
+          email
+        },
+        plan: 'Premium' // Assumindo premium para logados por enquanto
+      }
+    }));
+  };
+
+  const loadData = async () => {
+    const history = await supabaseService.fetchConversations();
+    setState(prev => ({ ...prev, conversations: history }));
+  };
+
+  // Apply theme to document
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (state.settings.appearance.theme === 'Claro') {
+      root.classList.remove('dark');
+      root.classList.add('light');
+    } else {
+      root.classList.remove('light');
+      root.classList.add('dark');
+    }
+  }, [state.settings.appearance.theme]);
 
   const scrollToBottom = () => {
     if (scrollRef.current) {
@@ -46,6 +173,9 @@ const App: React.FC = () => {
   }, [state.messages, state.isLoading]);
 
   const saveToBackend = async (currentChat: Partial<Conversation>) => {
+    // Só salva se estiver logado
+    if (!user) return;
+
     const existingIdx = state.conversations.findIndex(c => c.id === state.currentId);
     
     const conversationData: Conversation = {
@@ -121,11 +251,16 @@ const App: React.FC = () => {
     setTimeout(scrollToBottom, 100);
   };
 
-  const handleSendMessage = async (text: string) => {
+  const handleUpdateSettings = (newSettings: AppSettings) => {
+    setState(prev => ({ ...prev, settings: newSettings }));
+  };
+
+  const handleSendMessage = async (text: string, images?: string[]) => {
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
       text,
+      images,
       timestamp: new Date(),
     };
 
@@ -138,18 +273,24 @@ const App: React.FC = () => {
       error: null,
     }));
 
-    // Se for a primeira mensagem, define o título
-    const title = state.messages.length === 0 
-      ? (text.length > 40 ? text.substring(0, 37) + '...' : text)
-      : undefined;
+    // Se for a primeira mensagem, gera um título criativo com IA
+    const titlePromise = state.messages.length === 0 
+      ? geminiService.generateTitle(text)
+      : Promise.resolve(undefined);
 
     try {
+      const startTime = Date.now();
       const result = await geminiService.sendMessage(
         text, 
-        state.messages.concat(userMessage),
-        state.currentSystemInstruction
+        state.messages, // Passa apenas o histórico anterior
+        images, // Passa as imagens da mensagem atual
+        state.currentSystemInstruction,
+        state.settings // Passa as configurações do usuário
       );
+      const endTime = Date.now();
       
+      const title = await titlePromise;
+
       const aiMessage: Message = {
         id: crypto.randomUUID(),
         role: 'model',
@@ -157,6 +298,9 @@ const App: React.FC = () => {
         images: result.images,
         groundingUrls: result.groundingUrls,
         timestamp: new Date(),
+        usage: result.usage,
+        model: result.model,
+        responseTime: endTime - startTime
       };
 
       const finalMessages = [...newMessages, aiMessage];
@@ -167,8 +311,10 @@ const App: React.FC = () => {
         isLoading: false,
       }));
 
-      // Persistir no Supabase
-      await saveToBackend({ messages: finalMessages, title });
+      // Persistir no Supabase (se logado)
+      if (user) {
+        await saveToBackend({ messages: finalMessages, title });
+      }
     } catch (err) {
       setState(prev => ({
         ...prev,
@@ -179,75 +325,118 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-black text-white selection:bg-white/20 overflow-hidden">
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        onClose={() => setIsSidebarOpen(false)} 
-        onNewChat={handleNewChat}
-        onStartThemedChat={handleStartThemedChat}
-        conversations={state.conversations}
-        onLoadConversation={handleLoadConversation}
-        activeChatId={state.currentId}
-      />
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header 
-          onMenuClick={() => setIsSidebarOpen(true)} 
-          activeCategory={state.activeCategory}
-        />
-        
-        <main 
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden px-4 md:px-0 flex flex-col"
-        >
-          {state.messages.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center animate-in fade-in zoom-in duration-700">
-              <div className="text-center px-6">
-                <h2 className="text-[28px] font-medium text-white/90 tracking-tight">
-                  Em que posso ser útil hoje?
-                </h2>
-              </div>
-            </div>
-          ) : (
-            <div className="max-w-4xl mx-auto py-8 w-full">
-              {state.messages.map((msg) => (
-                <MessageItem key={msg.id} message={msg} />
-              ))}
-
-              {state.isLoading && (
-                <div className="flex items-center gap-2 text-gray-500 text-xs italic mb-8 animate-pulse ml-2">
-                  <div className="flex gap-1">
-                    <span className="w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
-                  Consultando Gemini & Google Search...
-                </div>
-              )}
-
-              {state.error && (
-                <div className="p-4 bg-red-950/20 border border-red-900/40 text-red-400 text-sm rounded-2xl mb-8 mx-2 text-center">
-                  {state.error}
-                </div>
-              )}
-            </div>
-          )}
-        </main>
-
-        <div className="w-full">
-          <ChatInput 
-            onSendMessage={handleSendMessage} 
-            disabled={state.isLoading} 
-          />
+    <div className="flex h-screen bg-white dark:bg-black text-zinc-900 dark:text-white selection:bg-blue-500/20 overflow-hidden transition-colors duration-300">
+      {isAuthLoading ? (
+        <div className="fixed inset-0 z-[100] bg-white dark:bg-black flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm font-medium animate-pulse">Restaurando sessão...</p>
+          </div>
         </div>
-      </div>
+      ) : (
+        <>
+          {showAuth && !user && (
+            <Auth 
+              onClose={() => setShowAuth(false)} 
+              onLoginSuccess={() => setShowAuth(false)} 
+            />
+          )}
 
-      <button 
-        onClick={scrollToBottom}
-        className={`fixed bottom-32 right-6 p-3 bg-zinc-900 border border-white/10 rounded-full text-gray-400 hover:text-white hover:bg-zinc-800 transition-all shadow-2xl hidden md:block ${state.messages.length > 3 ? 'opacity-100' : 'opacity-0'}`}
-      >
-        <ArrowDown className="w-5 h-5" />
-      </button>
+          <Sidebar 
+            isOpen={isSidebarOpen} 
+            onClose={() => setIsSidebarOpen(false)} 
+            onNewChat={handleNewChat}
+            onStartThemedChat={handleStartThemedChat}
+            conversations={state.conversations}
+            onLoadConversation={handleLoadConversation}
+            activeChatId={state.currentId}
+            onOpenSettings={() => setState(prev => ({ ...prev, showSettings: true }))}
+            onOpenBilling={() => setShowBilling(true)}
+            user={user}
+            onLoginClick={() => setShowAuth(true)}
+          />
+
+          {state.showSettings && (
+            <Settings 
+              settings={state.settings}
+              onUpdate={handleUpdateSettings}
+              onClose={() => setState(prev => ({ ...prev, showSettings: false }))}
+              onOpenBilling={() => setShowBilling(true)}
+            />
+          )}
+
+          {showBilling && (
+            <Billing 
+              onClose={() => setShowBilling(false)} 
+              currentPlan={state.settings.plan} 
+            />
+          )}
+
+          <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-black">
+            <Header 
+              onMenuClick={() => setIsSidebarOpen(true)} 
+              activeCategory={state.activeCategory}
+            />
+            
+            <main 
+              ref={scrollRef}
+              className="flex-1 overflow-y-auto overflow-x-hidden px-4 md:px-0 flex flex-col"
+            >
+              {state.messages.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center animate-in fade-in zoom-in duration-700">
+                  <div className="text-center px-6">
+                    <h2 className="text-[28px] font-medium text-zinc-900 dark:text-white/90 tracking-tight">
+                      {user ? `Olá, ${state.settings.account.name.split(' ')[0]}` : 'Em que posso ser útil hoje?'}
+                    </h2>
+                    {!user && (
+                      <p className="mt-2 text-zinc-500 dark:text-zinc-400 text-sm">
+                        Faça login para salvar suas conversas
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="max-w-4xl mx-auto py-8 w-full">
+                  {state.messages.map((msg) => (
+                    <MessageItem key={msg.id} message={msg} settings={state.settings} />
+                  ))}
+
+                  {state.isLoading && (
+                    <div className="flex items-center gap-2 text-zinc-400 dark:text-gray-500 text-xs italic mb-8 animate-pulse ml-2">
+                      <div className="flex gap-1">
+                        <span className="w-1 h-1 bg-zinc-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1 h-1 bg-zinc-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1 h-1 bg-zinc-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                      Consultando Gemini & Google Search...
+                    </div>
+                  )}
+
+                  {state.error && (
+                    <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 text-sm rounded-2xl mb-8 mx-2 text-center">
+                      {state.error}
+                    </div>
+                  )}
+                </div>
+              )}
+            </main>
+
+            <div className="w-full">
+              <ChatInput 
+                onSendMessage={handleSendMessage} 
+                disabled={state.isLoading} 
+              />
+            </div>
+          </div>
+
+          <button 
+            onClick={scrollToBottom}
+            className={`fixed bottom-32 right-6 p-3 bg-zinc-900 border border-white/10 rounded-full text-gray-400 hover:text-white hover:bg-zinc-800 transition-all shadow-2xl hidden md:block ${state.messages.length > 3 ? 'opacity-100' : 'opacity-0'}`}
+          >
+            <ArrowDown className="w-5 h-5" />
+          </button>
+        </>
+      )}
     </div>
   );
 };
