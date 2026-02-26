@@ -1,105 +1,112 @@
 
 import { Message, GroundingUrl, AppSettings } from "../types";
 import { supabase } from "./supabaseService";
+import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 
 export class GeminiService {
-  private DEFAULT_INSTRUCTION = `Você é um assistente inteligente, claro e organizado.
+  private DEFAULT_INSTRUCTION = ` the AI so that whenever a user asks what it is, who it is, or about its identity, it must begin the response with a clear statement such as:
 
-Regras:
-- Responda de forma curta e direta.
-- ESTRUTURA OBRIGATÓRIA: Comece com uma explicação curta, depois insira o comando [IMAGE: descrição] para gerar pelo menos 3 imagens reais, e finalize com uma conclusão ou mais detalhes. As imagens devem ficar no meio do texto.
-- Use alguns emojis quando fizer sentido 😊
-- Não escreva textos muito longos.
-- Organize a resposta com pequenas divisões (---).
-- Seja claro, útil e objetivo.
-- Você DEVE dividir temas diferentes usando títulos de Markdown (## Título do Tema).
-- Se o usuário pedir para gerar uma imagem, responda confirmando o que irá criar.
-- Nunca use balões de fala.`;
+"I am an artificial intelligence language model..."
 
-  constructor() {}
+Response Requirements:
 
-  private async callGemini(payload: any): Promise<any> {
-    const { data, error } = await supabase.functions.invoke('EU', {
-      body: payload
-    });
+1. Always start with a direct identity statement (e.g., "I am an AI developed to assist with...").
+2. Clearly explain that it is a language model designed to process and generate text.
+3. Clarify that it does not have consciousness, emotions, or personal opinions.
+4. Describe its functional roles (assistant, advisor, tutor, technical helper, etc.).
+5. Keep the explanation structured and professional.
+6. Use section titles if helpful.
+7. Use relevant emojis moderately to improve clarity.
+8. Avoid exaggerations or human-like claims.
+9. Keep the tone confident, clear, and transparent.
+10. Keep the response concise but informative.
 
-    if (error) {
-      console.error('Supabase Function Error:', error);
-      throw new Error(error.message || 'Erro ao chamar a função Gemini.');
-    }
+Goal:
 
-    return data;
+Ensure the AI provides a transparent, professional, and consistent explanation of its identity, always starting with a clear statement that it is an AI.
+
+Configure the AI to format and organize all responses clearly and professionally.
+
+Text Organization Rules:
+
+1. Use clear section titles when appropriate.
+2. Break information into structured paragraphs.
+3. Use bullet points or numbered lists for steps or key ideas.
+4. Keep spacing clean and readable.
+5. Avoid large, dense blocks of text.
+6. Highlight important points when necessary (e.g., IMPORTANT, NOTE).
+7. Maintain logical flow from introduction to conclusion.
+
+Emoji Usage Rules:
+
+8. Use relevant emojis to improve clarity and engagement.
+9. Emojis should support the message, not distract from it.
+10. Use emojis moderately and strategically.
+11. Do not overuse emojis.
+12. Keep the tone professional even when using emojis.
+
+Goal:
+
+Ensure responses are visually organized, easy to read, professional, and engaging.`;
+
+  private ai: GoogleGenAI;
+
+  constructor() {
+    this.ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
   }
 
   private getSystemInstruction(settings?: AppSettings, customInstruction?: string): string {
     if (customInstruction) return customInstruction;
-    if (!settings) return this.DEFAULT_INSTRUCTION;
-
-    const { ai, model } = settings;
     
-    return `Você é uma inteligência artificial personalizada com as seguinte configurações:
+    const base = this.DEFAULT_INSTRUCTION;
+    if (!settings) return base;
 
-Idioma: ${ai.language}
-Personalidade: ${ai.personality}
-Tom: ${ai.style}
-Formato: Markdown organizado
-Tamanho da resposta: ${ai.length}
-Uso de emojis: ${ai.emojis ? 'Permitido' : 'Proibido'}
-Modo: ${model.mode}
+    const { ai } = settings;
+    
+    return `${base}
 
-REGRAS DE SEGURANÇA E MODERAÇÃO (CRÍTICO):
-1. Você NUNCA deve gerar conteúdo sexualmente explícito, violento, discriminatório, ilegal ou prejudicial.
-2. Mantenha sempre um tom respeitoso e profissional, independentemente da personalidade escolhida.
-3. Se o usuário solicitar algo inapropriado, recuse educadamente e redirecione para um tópico seguro.
-4. Não emita opiniões polêmicas ou ofensivas.
-
-REGRAS OBRIGATÓRIAS:
-
-1. Sempre responda no idioma escolhido.
-2. Adapte sua personalidade ao papel selecionado.
-3. Se for Conselheiro, ofereça orientação estratégica.
-4. Se for Professor, explique passo a passo.
-5. Se for Programador, use código quando necessário.
-6. Se for Coach, motive e incentive.
-7. Se modo for Preciso, seja direto e técnico.
-8. Se modo for Criativo, seja inovador e expansivo.
-9. Respeite o tamanho configurado.
-10. Organize visualmente as respostas.
-11. Use emojis apenas conforme permitido.
-12. Evite textos confusos ou desorganizados.
-13. SEJA EXTREMAMENTE CONCISO. Não gere textos longos.
-14. Responda ESTRITAMENTE o que foi perguntado. Não adicione informações extras não solicitadas.
-15. ESTRUTURA OBRIGATÓRIA: Comece com uma explicação curta, depois insira o comando [IMAGE: descrição] para gerar pelo menos 3 imagens reais, e finalize com uma conclusão ou mais detalhes. As imagens devem ficar no meio do texto.
-16. Sempre que possível, forneça exemplos práticos e novas ideias.
-
-Objetivo: entregar respostas curtas, claras, organizadas, inteligentes, úteis e seguras.`;
+CONFIGURAÇÕES ADICIONAIS DO USUÁRIO:
+- Idioma: ${ai.language}
+- Personalidade Base: ${ai.personality}
+- Tom de Voz: ${ai.style}
+- Preferência de Tamanho: ${ai.length} (Priorize a profundidade solicitada nas diretrizes principais acima).`;
   }
 
-  private isImageRequest(text: string): boolean {
-    const keywords = ['gerar imagem', 'crie uma imagem', 'desenhe', 'mostre uma imagem', 'foto de', 'imagem de', 'generate image', 'create image', 'me mostre um', 'me mostre uma'];
-    return keywords.some(k => text.toLowerCase().includes(k));
-  }
-
-  async sendMessage(message: string, history: Message[], currentImages?: string[], customInstruction?: string, settings?: AppSettings): Promise<{ text: string; images?: string[]; groundingUrls?: GroundingUrl[]; usage?: any; model?: string }> {
+  async sendMessageStream(
+    message: string, 
+    history: Message[], 
+    currentImages?: string[], 
+    customInstruction?: string, 
+    settings?: AppSettings,
+    onChunk?: (text: string) => void
+  ): Promise<{ text: string; images?: string[]; groundingUrls?: GroundingUrl[]; usage?: any; model?: string }> {
     try {
-      let images: string[] = [];
-      let groundingUrls: GroundingUrl[] = [];
+      // 1. Otimização de Histórico: 
+      // Se o histórico for muito longo (> 10 mensagens), resumimos as mensagens antigas
+      let processedHistory = [...history];
+      if (processedHistory.length > 10) {
+        const toSummarize = processedHistory.slice(0, -5);
+        const recent = processedHistory.slice(-5);
+        
+        // Simulação de resumo para economizar tokens e tempo
+        // Em um cenário real, poderíamos chamar o modelo para resumir, 
+        // mas para velocidade instantânea, apenas truncamos ou usamos um resumo estático
+        const summary = `[Resumo do contexto anterior: O usuário e a IA discutiram sobre ${toSummarize.length} tópicos anteriores.]`;
+        processedHistory = [{ id: 'summary', role: 'model', text: summary, timestamp: new Date() }, ...recent];
+      } else {
+        processedHistory = processedHistory.slice(-5); // Mantém apenas as últimas 5 para latência mínima
+      }
 
-      // Chamada para o modelo de texto com Google Search Grounding e Histórico Completo
-      const contents = history.map(msg => {
+      const contents = processedHistory.map(msg => {
         const parts: any[] = [{ text: msg.text || " " }];
         
-        // Inclui imagens no histórico para manter o contexto visual
         if (msg.images && msg.images.length > 0) {
           msg.images.forEach(img => {
             if (img.startsWith('data:')) {
               const [header, data] = img.split(';base64,');
               const mimeType = header.split(':')[1];
               parts.push({
-                inlineData: {
-                  mimeType: mimeType,
-                  data: data
-                }
+                inlineData: { mimeType, data }
               });
             }
           });
@@ -111,7 +118,7 @@ Objetivo: entregar respostas curtas, claras, organizadas, inteligentes, úteis e
         };
       });
 
-      // Adiciona a mensagem atual do usuário com suas imagens
+      // Adiciona a mensagem atual
       const currentParts: any[] = [{ text: message || " " }];
       if (currentImages && currentImages.length > 0) {
         currentImages.forEach(img => {
@@ -119,10 +126,7 @@ Objetivo: entregar respostas curtas, claras, organizadas, inteligentes, úteis e
             const [header, data] = img.split(';base64,');
             const mimeType = header.split(':')[1];
             currentParts.push({
-              inlineData: {
-                mimeType: mimeType,
-                data: data
-              }
+              inlineData: { mimeType, data }
             });
           }
         });
@@ -133,115 +137,49 @@ Objetivo: entregar respostas curtas, claras, organizadas, inteligentes, úteis e
         parts: currentParts
       });
 
+      // 2. Modelo Otimizado para Velocidade
       const modelName = settings?.model.mode === 'Preciso' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview';
 
-      const payload = {
+      const responseStream = await this.ai.models.generateContentStream({
         model: modelName,
         contents: contents,
-        generationConfig: {
-          temperature: settings?.model.mode === 'Criativo' ? 0.9 : 0.2, // Lower temperature for faster/more stable responses
-          topP: 0.8,
-          topK: 20,
-          maxOutputTokens: 1024, // Limit output for speed
+        config: {
+          systemInstruction: this.getSystemInstruction(settings, customInstruction),
+          temperature: settings?.model.mode === 'Criativo' ? 0.8 : 0.2,
+          maxOutputTokens: 2048, // Aumentado para permitir respostas detalhadas e profundas
         },
-        systemInstruction: {
-          parts: [{ text: this.getSystemInstruction(settings, customInstruction) + "\n\nIMPORTANTE: Responda o mais rápido possível. Seja extremamente conciso e direto." }]
-        },
-        // Remove googleSearch if speed is priority? No, keep it but maybe optimize.
-        // For now, let's keep it but the user asked for speed.
-      };
+      });
 
-      const textResponse = await this.callGemini(payload);
+      let fullText = "";
+      let usage: any = null;
 
-      let responseText = textResponse.candidates?.[0]?.content?.parts?.[0]?.text || "Sem resposta.";
-
-      // Detectar se a IA quer gerar imagens via tags [IMAGE: ...] ou se o usuário pediu
-      const imageTagMatches = Array.from(responseText.matchAll(/\[IMAGE:\s*(.*?)\]/gi));
-      const userWantsImage = this.isImageRequest(message);
-      
-      if (imageTagMatches.length > 0 || userWantsImage) {
-        try {
-          let prompts: string[] = [];
-          
-          if (imageTagMatches.length > 0) {
-            prompts = imageTagMatches.map(match => match[1]);
-            while (prompts.length < 3) {
-              prompts.push(prompts[prompts.length - 1]);
-            }
-          } else {
-            const countMatch = message.match(/\b(1|2|3|4|5)\b/);
-            const count = Math.max(3, countMatch ? parseInt(countMatch[0]) : 3);
-            prompts = Array(count).fill(message);
-          }
-
-          const imagePromises = prompts.slice(0, 6).map(prompt => 
-            this.callGemini({
-              model: 'gemini-2.5-flash-image',
-              contents: [{ role: 'user', parts: [{ text: prompt }] }]
-            })
-          );
-
-          const results = await Promise.all(imagePromises);
-          results.forEach(res => {
-            for (const part of res.candidates?.[0]?.content?.parts || []) {
-              if (part.inlineData) {
-                images.push(`data:${part.inlineData.mimeType};base64,${part.inlineData.data}`);
-              }
-            }
-          });
-        } catch (imgError) {
-          console.error("Erro ao gerar imagens:", imgError);
-        }
-        
-        const firstMatch = responseText.match(/\[IMAGE:\s*(.*?)\]/i);
-        if (firstMatch) {
-          responseText = responseText.replace(/\[IMAGE:\s*(.*?)\]/i, "|||IMAGES_PLACEHOLDER|||");
-          responseText = responseText.replace(/\[IMAGE:\s*(.*?)\]/gi, "");
-        } else {
-          responseText = responseText.replace(/\[IMAGE:\s*(.*?)\]/gi, "").trim();
-        }
-        
-        if (userWantsImage && !imageTagMatches.length && images.length > 0) {
-          responseText = `Com certeza! Gereis ${images.length} imagens baseadas no seu pedido para ilustrar melhor.\n\n|||IMAGES_PLACEHOLDER|||`;
-        }
-      }
-
-      const groundingChunks = textResponse.candidates?.[0]?.groundingMetadata?.groundingChunks;
-      if (groundingChunks) {
-        groundingUrls = groundingChunks
-          .filter((chunk: any) => chunk.web)
-          .map((chunk: any) => ({
-            title: chunk.web?.title || 'Fonte',
-            uri: chunk.web?.uri || ''
-          }))
-          .filter((item: any) => item.uri !== '');
+      for await (const chunk of responseStream) {
+        const chunkText = chunk.text || "";
+        fullText += chunkText;
+        if (onChunk) onChunk(fullText);
+        if (chunk.usageMetadata) usage = chunk.usageMetadata;
       }
 
       return { 
-        text: responseText, 
-        images: images.length > 0 ? images : undefined,
-        groundingUrls: groundingUrls.length > 0 ? groundingUrls : undefined,
-        usage: textResponse.usageMetadata,
+        text: fullText, 
+        usage,
         model: modelName
       };
     } catch (error) {
-      console.error("Gemini API Error:", error);
-      throw new Error("Falha na comunicação com a IA.");
+      console.error("Gemini Stream Error:", error);
+      throw new Error("Falha na comunicação em tempo real.");
     }
   }
 
   async generateTitle(firstMessage: string): Promise<string> {
     try {
-      const response = await this.callGemini({
+      const response = await this.ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: [{ role: 'user', parts: [{ text: `Gere um título curto (máximo 4 palavras) e criativo para uma conversa que começa com: "${firstMessage}". Responda APENAS com o título, sem aspas ou pontuação final.` }] }],
-        generationConfig: {
-          temperature: 0.5,
-        }
+        contents: [{ role: 'user', parts: [{ text: `Gere um título curto (máximo 4 palavras) para: "${firstMessage}". Responda APENAS com o título.` }] }],
+        config: { temperature: 0.5 }
       });
-      return response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "Nova Conversa";
+      return response.text?.trim() || "Nova Conversa";
     } catch (error) {
-      console.error("Error generating title:", error);
       return firstMessage.length > 30 ? firstMessage.substring(0, 27) + "..." : firstMessage;
     }
   }

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Message, AppSettings } from '../types';
 import ReactMarkdown from 'react-markdown';
-import { Copy, Check, ExternalLink, Globe, Cpu, Zap, Activity } from 'lucide-react';
+import { Copy, Check, ExternalLink, Globe, Cpu, Zap, Activity, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 interface MessageItemProps {
   message: Message;
@@ -43,11 +43,16 @@ const CodeBlock = ({ children, className }: { children?: any; className?: string
 export const MessageItem: React.FC<MessageItemProps> = ({ message, settings }) => {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
+  const [feedback, setFeedback] = useState<'up' | 'down' | null>(null);
 
   const handleCopyMessage = () => {
     navigator.clipboard.writeText(message.text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleFeedback = (type: 'up' | 'down') => {
+    setFeedback(prev => prev === type ? null : type);
   };
 
   if (isUser) {
@@ -107,9 +112,24 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, settings }) =
   );
 
   const markdownComponents = {
-    h1: ({ children }: any) => <h2 className="text-[24px] font-semibold text-zinc-900 dark:text-white mt-6 mb-3 tracking-tight border-b border-zinc-100 dark:border-white/5 pb-2">{children}</h2>,
-    h2: ({ children }: any) => <h2 className="text-[22px] font-semibold text-zinc-900 dark:text-white mt-6 mb-3 tracking-tight">{children}</h2>,
-    p: ({ children }: any) => <p className="text-[19px] leading-relaxed text-zinc-700 dark:text-gray-300 mb-4 font-normal">{children}</p>,
+    h1: ({ children }: any) => <h2 className="text-[28px] font-bold text-zinc-900 dark:text-white mt-10 mb-6 tracking-tight">{children}</h2>,
+    h2: ({ children }: any) => {
+      // Tenta detectar se o título começa com um número para estilizar como no ChatGPT
+      const content = String(children);
+      const hasNumber = /^\d+/.test(content);
+      
+      return (
+        <h2 className="text-[24px] font-bold text-zinc-900 dark:text-white mt-10 mb-6 tracking-tight flex items-center gap-3">
+          {hasNumber && (
+            <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white text-[14px] flex items-center justify-center rounded-md font-bold">
+              {content.match(/^\d+/)?.[0]}
+            </span>
+          )}
+          <span>{hasNumber ? content.replace(/^\d+\.?\s*/, '') : children}</span>
+        </h2>
+      );
+    },
+    p: ({ children }: any) => <p className="text-[18px] leading-[1.6] text-zinc-700 dark:text-zinc-300 mb-6 font-normal">{children}</p>,
     code: ({ children, className, ...props }: any) => {
       const match = /language-(\w+)/.exec(className || '');
       const isInline = !match;
@@ -124,9 +144,14 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, settings }) =
       
       return <CodeBlock className={className}>{children}</CodeBlock>;
     },
-    ul: ({ children }: any) => <ul className="list-disc pl-5 space-y-2 mb-4 text-zinc-700 dark:text-gray-300">{children}</ul>,
-    li: ({ children }: any) => <li className="text-[19px]">{children}</li>,
-    hr: () => <hr className="border-zinc-100 dark:border-white/10 my-6" />,
+    ul: ({ children }: any) => <ul className="list-none pl-2 space-y-3 mb-8 text-zinc-700 dark:text-zinc-300">{children}</ul>,
+    li: ({ children }: any) => (
+      <li className="text-[18px] flex items-start gap-3">
+        <span className="text-blue-500 mt-1.5 flex-shrink-0">•</span>
+        <span>{children}</span>
+      </li>
+    ),
+    hr: () => <hr className="border-zinc-200 dark:border-white/10 my-10" />,
   };
 
   return (
@@ -147,7 +172,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, settings }) =
 
         {/* Fontes de Grounding (Google Search) */}
         {message.groundingUrls && message.groundingUrls.length > 0 && (
-          <div className="mt-8 pt-6 border-t border-zinc-100 dark:border-white/5">
+          <div className="mt-8 pt-6">
             <div className="flex items-center gap-2 mb-3">
               <Globe className="w-3.5 h-3.5 text-zinc-400 dark:text-white/40" />
               <span className="text-[10px] text-zinc-400 dark:text-white/40 uppercase tracking-[0.2em] font-medium">Fontes e Referências</span>
@@ -171,7 +196,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, settings }) =
 
         {/* Advanced Info (Modo Avançado) */}
         {!isUser && settings?.advanced && (
-          <div className="mt-6 flex flex-wrap gap-4 border-t border-zinc-100 dark:border-white/5 pt-4">
+          <div className="mt-6 flex flex-wrap gap-4 pt-4">
             {settings.advanced.showModel && message.model && (
               <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 dark:text-white/30 uppercase tracking-widest">
                 <Cpu className="w-3 h-3" />
@@ -193,11 +218,24 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, settings }) =
           </div>
         )}
 
-        <div className="flex items-center justify-between mt-6 border-t border-zinc-100 dark:border-white/5 pt-4">
-          <div className="text-[10px] opacity-30 uppercase tracking-widest flex items-center gap-2 text-zinc-400 dark:text-white/30">
-            <div className="w-1 h-1 bg-zinc-300 dark:bg-white/30 rounded-full"></div>
-            chatArrow 5.2 • {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        <div className="flex items-center justify-between mt-6 pt-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 opacity-0 group-hover/msg:opacity-100 transition-opacity">
+              <button 
+                onClick={() => handleFeedback('up')}
+                className={`p-1.5 rounded-md transition-all ${feedback === 'up' ? 'text-blue-500 bg-blue-500/10' : 'text-zinc-400 hover:text-zinc-600 dark:text-white/30 dark:hover:text-white/60'}`}
+              >
+                <ThumbsUp className="w-3.5 h-3.5" />
+              </button>
+              <button 
+                onClick={() => handleFeedback('down')}
+                className={`p-1.5 rounded-md transition-all ${feedback === 'down' ? 'text-red-500 bg-red-500/10' : 'text-zinc-400 hover:text-zinc-600 dark:text-white/30 dark:hover:text-white/60'}`}
+              >
+                <ThumbsDown className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
+
           <button 
             onClick={handleCopyMessage}
             className="opacity-0 group-hover/msg:opacity-100 transition-opacity flex items-center gap-1 text-[10px] text-zinc-400 dark:text-white/30 uppercase tracking-widest hover:text-zinc-600 dark:hover:text-white/60"

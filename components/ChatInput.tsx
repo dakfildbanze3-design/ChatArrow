@@ -30,12 +30,26 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled })
 
     Array.from(files).forEach(file => {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setSelectedImages(prev => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
+      
+      if (file.type.startsWith('image/')) {
+        reader.onloadend = () => {
+          setSelectedImages(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      } else if (file.type === 'application/json' || file.name.endsWith('.json') || file.type.startsWith('text/')) {
+        reader.onloadend = () => {
+          const content = reader.result as string;
+          setText(prev => {
+            const separator = prev.trim() ? '\n\n' : '';
+            return prev + separator + `Conteúdo do arquivo (${file.name}):\n\`\`\`${file.name.endsWith('.json') ? 'json' : ''}\n${content}\n\`\`\``;
+          });
+        };
+        reader.readAsText(file);
+      }
     });
     setIsMenuOpen(false);
+    // Reset input value to allow selecting same file again
+    e.target.value = '';
   };
 
   const removeImage = (index: number) => {

@@ -62,12 +62,36 @@ export interface AppSettings {
     push: boolean;
     sounds: boolean;
   };
-  plan: 'Free' | 'Premium';
+  plan: string;
+  subscription?: Subscription;
   advanced: {
     showTokens: boolean;
     showTime: boolean;
     showModel: boolean;
   };
+}
+
+export interface Plan {
+  id: string;
+  name: string;
+  price: number;
+  currency: string;
+  duration_days: number;
+  features: string[];
+  description: string;
+}
+
+export interface Subscription {
+  id: string;
+  user_id: string;
+  plan_name: string;
+  price: number;
+  payment_method: 'mpesa' | 'emola';
+  status: 'pending' | 'paid' | 'failed';
+  transaction_reference: string;
+  phone_number: string;
+  created_at: Date;
+  expires_at: Date | null;
 }
 
 export interface ChatState {
@@ -80,4 +104,5 @@ export interface ChatState {
   conversations: Conversation[];
   settings: AppSettings;
   showSettings: boolean;
+  isAnalyzingImage?: boolean;
 }

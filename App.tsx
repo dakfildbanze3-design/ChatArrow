@@ -10,6 +10,7 @@ import { Billing } from './components/Billing';
 import { Message, ChatState, Conversation, AppSettings } from './types';
 import { geminiService } from './services/geminiService';
 import { supabaseService, supabase } from './services/supabaseService';
+import { paymentService } from './services/paymentService';
 import { ArrowDown } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
 
@@ -131,19 +132,33 @@ const App: React.FC = () => {
           name,
           photo: user.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${name}&background=333&color=fff`,
           email
-        },
-        plan: 'Premium' // Assumindo premium para logados por enquanto
+        }
       }
     }));
   };
 
   const loadData = async () => {
     const history = await supabaseService.fetchConversations();
-    setState(prev => ({ ...prev, conversations: history }));
+    const subscription = await paymentService.getActiveSubscription();
+    
+    setState(prev => ({ 
+      ...prev, 
+      conversations: history,
+      settings: {
+        ...prev.settings,
+        plan: subscription ? subscription.plan_name : 'Free',
+        subscription: subscription || undefined
+      }
+    }));
   };
 
   // Sincronizar estado com o Hash da URL
   useEffect(() => {
+    // Limpar hash ao carregar para garantir que o app sempre abra no chat
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+
     const handleHashChange = () => {
       const hash = window.location.hash;
       if (hash === '#settings') {
@@ -159,7 +174,7 @@ const App: React.FC = () => {
     };
 
     window.addEventListener('hashchange', handleHashChange);
-    handleHashChange(); // Verificar no carregamento inicial
+    // Não chamamos handleHashChange() aqui para ignorar hash no carregamento inicial
 
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
@@ -281,59 +296,89 @@ const App: React.FC = () => {
 
     const newMessages = [...state.messages, userMessage];
     
+    // 1. Atualização imediata do UI com a mensagem do usuário
     setState(prev => ({
       ...prev,
       messages: newMessages,
       isLoading: true,
+      isAnalyzingImage: !!(images && images.length > 0),
       error: null,
     }));
 
-    // Se for a primeira mensagem, gera um título criativo com IA
+    // 2. Gerar título em background se for a primeira mensagem
     const titlePromise = state.messages.length === 0 
       ? geminiService.generateTitle(text)
       : Promise.resolve(undefined);
 
     try {
       const startTime = Date.now();
-      const result = await geminiService.sendMessage(
-        text, 
-        state.messages, // Passa apenas o histórico anterior
-        images, // Passa as imagens da mensagem atual
-        state.currentSystemInstruction,
-        state.settings // Passa as configurações do usuário
-      );
-      const endTime = Date.now();
       
-      const title = await titlePromise;
-
-      const aiMessage: Message = {
-        id: crypto.randomUUID(),
+      // Criar placeholder para a mensagem da IA que será atualizada via stream
+      const aiMessageId = crypto.randomUUID();
+      const initialAiMessage: Message = {
+        id: aiMessageId,
         role: 'model',
-        text: result.text,
-        images: result.images,
-        groundingUrls: result.groundingUrls,
+        text: '',
         timestamp: new Date(),
-        usage: result.usage,
-        model: result.model,
-        responseTime: endTime - startTime
+        model: state.settings.model.mode === 'Preciso' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview'
       };
 
-      const finalMessages = [...newMessages, aiMessage];
+      setState(prev => ({
+        ...prev,
+        messages: [...newMessages, initialAiMessage]
+      }));
+
+      // 3. Chamar streaming
+      const result = await geminiService.sendMessageStream(
+        text, 
+        state.messages,
+        images,
+        state.currentSystemInstruction,
+        state.settings,
+        (currentFullText) => {
+          // Atualização progressiva do texto (Streaming)
+          setState(prev => ({
+            ...prev,
+            messages: prev.messages.map(m => 
+              m.id === aiMessageId ? { ...m, text: currentFullText } : m
+            )
+          }));
+        }
+      );
+
+      const endTime = Date.now();
+      const title = await titlePromise;
+
+      // 4. Finalizar mensagem com metadados
+      const finalAiMessage: Message = {
+        ...initialAiMessage,
+        text: result.text,
+        usage: result.usage,
+        model: result.model,
+        responseTime: endTime - startTime,
+        timestamp: new Date()
+      };
+
+      const finalMessages = [...newMessages, finalAiMessage];
 
       setState(prev => ({
         ...prev,
         messages: finalMessages,
         isLoading: false,
+        isAnalyzingImage: false,
       }));
 
-      // Persistir no Supabase (se logado)
+      // 5. Persistir no Supabase em background (sem await para não bloquear o usuário)
       if (user) {
-        await saveToBackend({ messages: finalMessages, title });
+        saveToBackend({ messages: finalMessages, title }).catch(err => 
+          console.error("Erro ao salvar histórico em background:", err)
+        );
       }
     } catch (err) {
       setState(prev => ({
         ...prev,
         isLoading: false,
+        isAnalyzingImage: false,
         error: err instanceof Error ? err.message : 'Erro na comunicação.',
       }));
     }
@@ -384,6 +429,7 @@ const App: React.FC = () => {
             <Billing 
               onClose={handleCloseBilling} 
               currentPlan={state.settings.plan} 
+              subscription={state.settings.subscription}
             />
           )}
 
@@ -420,11 +466,25 @@ const App: React.FC = () => {
                   ))}
 
                   {state.isLoading && (
-                    <div className="flex items-center gap-2 mb-8 ml-2">
-                      <div className="flex gap-1.5">
-                        <span className="w-2.5 h-2.5 bg-zinc-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-2.5 h-2.5 bg-zinc-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-2.5 h-2.5 bg-zinc-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <div className="flex flex-col gap-2 mb-8 ml-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 flex items-center justify-center">
+                          <svg 
+                            width="24" 
+                            height="24" 
+                            viewBox="0 0 24 24" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="1.5" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            className="text-white animate-pulse"
+                          >
+                            <path d="M12 3L2 21H22L12 3Z" />
+                            <path d="M12 3V21" />
+                            <path d="M2 21L12 12L22 21" />
+                          </svg>
+                        </div>
                       </div>
                     </div>
                   )}

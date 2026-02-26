@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, activeCategory, use
               <>
                 {activeCategory || (
                   <>
-                    5.2 <span className="text-blue-500 font-medium tracking-wide">beta</span>
+                    <span className="text-blue-500 font-medium tracking-wide">beta</span>
                   </>
                 )}
               </>
