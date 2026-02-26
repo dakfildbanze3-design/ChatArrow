@@ -61,13 +61,13 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, settings }) =
         {message.images && message.images.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2 justify-end max-w-[90%] md:max-w-[75%]">
             {message.images.map((img, idx) => (
-              <div key={idx} className="w-24 h-24 md:w-32 md:h-32 rounded-xl overflow-hidden border border-white/10 shadow-lg">
+              <div key={idx} className="w-24 h-24 md:w-32 md:h-32 rounded-xl overflow-hidden shadow-lg">
                 <img src={img} alt="User upload" className="w-full h-full object-cover" />
               </div>
             ))}
           </div>
         )}
-        <div className="max-w-[90%] md:max-w-[75%] px-4 py-3 rounded-2xl leading-relaxed text-[19px] bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-white rounded-tr-none shadow-sm border border-zinc-200 dark:border-white/5">
+        <div className="max-w-[90%] md:max-w-[75%] px-4 py-3 rounded-2xl leading-relaxed text-[19px] bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-white rounded-tr-none shadow-sm">
           <div className="whitespace-pre-wrap">{message.text}</div>
         </div>
         <div className="flex items-center gap-3 mt-1.5 px-1">
