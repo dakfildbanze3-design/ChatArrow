@@ -67,7 +67,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, settings }) =
             ))}
           </div>
         )}
-        <div className="max-w-[90%] md:max-w-[75%] px-4 py-3 rounded-2xl leading-relaxed text-[19px] bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-white rounded-tr-none shadow-sm">
+        <div className="max-w-[90%] md:max-w-[75%] px-4 py-3 rounded-2xl leading-relaxed text-[15px] bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-white rounded-tr-none shadow-sm">
           <div className="whitespace-pre-wrap">{message.text}</div>
         </div>
         <div className="flex items-center gap-3 mt-1.5 px-1">
@@ -112,16 +112,16 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, settings }) =
   );
 
   const markdownComponents = {
-    h1: ({ children }: any) => <h2 className="text-[28px] font-bold text-zinc-900 dark:text-white mt-10 mb-6 tracking-tight">{children}</h2>,
+    h1: ({ children }: any) => <h2 className="text-[22px] font-bold text-zinc-900 dark:text-white mt-8 mb-4 tracking-tight">{children}</h2>,
     h2: ({ children }: any) => {
       // Tenta detectar se o título começa com um número para estilizar como no ChatGPT
       const content = String(children);
       const hasNumber = /^\d+/.test(content);
       
       return (
-        <h2 className="text-[24px] font-bold text-zinc-900 dark:text-white mt-10 mb-6 tracking-tight flex items-center gap-3">
+        <h2 className="text-[18px] font-bold text-zinc-900 dark:text-white mt-8 mb-4 tracking-tight flex items-center gap-3">
           {hasNumber && (
-            <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white text-[14px] flex items-center justify-center rounded-md font-bold">
+            <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white text-[12px] flex items-center justify-center rounded-md font-bold">
               {content.match(/^\d+/)?.[0]}
             </span>
           )}
@@ -129,14 +129,14 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, settings }) =
         </h2>
       );
     },
-    p: ({ children }: any) => <p className="text-[18px] leading-[1.6] text-zinc-700 dark:text-zinc-300 mb-6 font-normal">{children}</p>,
+    p: ({ children }: any) => <p className="text-[15px] leading-[1.6] text-zinc-700 dark:text-zinc-300 mb-4 font-normal">{children}</p>,
     code: ({ children, className, ...props }: any) => {
       const match = /language-(\w+)/.exec(className || '');
       const isInline = !match;
       
       if (isInline) {
         return (
-          <code className="bg-zinc-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-[14px] font-mono text-zinc-900 dark:text-white/90" {...props}>
+          <code className="bg-zinc-100 dark:bg-white/10 px-1.5 py-0.5 rounded text-[13px] font-mono text-zinc-900 dark:text-white/90" {...props}>
             {children}
           </code>
         );
@@ -144,14 +144,14 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, settings }) =
       
       return <CodeBlock className={className}>{children}</CodeBlock>;
     },
-    ul: ({ children }: any) => <ul className="list-none pl-2 space-y-3 mb-8 text-zinc-700 dark:text-zinc-300">{children}</ul>,
+    ul: ({ children }: any) => <ul className="list-none pl-2 space-y-2 mb-6 text-zinc-700 dark:text-zinc-300">{children}</ul>,
     li: ({ children }: any) => (
-      <li className="text-[18px] flex items-start gap-3">
+      <li className="text-[15px] flex items-start gap-3">
         <span className="text-blue-500 mt-1.5 flex-shrink-0">•</span>
         <span>{children}</span>
       </li>
     ),
-    hr: () => <hr className="border-zinc-200 dark:border-white/10 my-10" />,
+    hr: () => <hr className="border-zinc-200 dark:border-white/10 my-8" />,
   };
 
   return (

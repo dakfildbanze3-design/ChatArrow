@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Edit3, 
   School, 
@@ -12,7 +12,11 @@ import {
   X,
   MessageSquare,
   LogOut,
-  LogIn
+  LogIn,
+  User as UserIcon,
+  CreditCard,
+  HelpCircle,
+  MoreVertical
 } from 'lucide-react';
 import { Conversation } from '../types';
 import { User } from '@supabase/supabase-js';
@@ -46,6 +50,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onLoginClick
 }) => {
   const ICON_PATH = 'assets/images/10_de_fev._de_2026,_15_01_43.png';
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -64,7 +80,6 @@ RESTRIÇÃO DE ESCOPO:
 
 Regras:
 - Responda ESTRITAMENTE o que foi perguntado.
-- ESTRUTURA OBRIGATÓRIA: Comece com uma explicação curta, depois insira o comando [IMAGE: descrição] para gerar pelo menos 3 imagens reais, e finalize com uma conclusão ou mais detalhes. As imagens devem ficar no meio do texto.
 - Explique de forma simples e resumida.
 - Sempre que possível, forneça exemplos práticos e novas ideias.
 - Use emojis educativos 📚✨
@@ -84,7 +99,6 @@ RESTRIÇÃO DE ESCOPO:
 
 Regras:
 - Responda ESTRITAMENTE o que foi perguntado.
-- ESTRUTURA OBRIGATÓRIA: Comece com uma análise curta, depois insira o comando [IMAGE: descrição] para gerar pelo menos 3 imagens reais, e finalize com recomendações ou mais análises. As imagens devem ficar no meio do texto.
 - Analise de forma objetiva com tópicos curtos.
 - Sempre que possível, forneça exemplos de mercado e ideias inovadoras.
 - Use emojis profissionais 💼📈
@@ -105,7 +119,6 @@ RESTRIÇÃO DE ESCOPO:
 
 Regras:
 - Responda ESTRITAMENTE o que foi perguntado.
-- ESTRUTURA OBRIGATÓRIA: Comece com uma ideia curta, depois insira o comando [IMAGE: descrição] para gerar pelo menos 3 imagens reais, e finalize com mais insights criativos. As imagens devem ficar no meio do texto.
 - Gere ideias impactantes e resumidas.
 - Sempre que possível, forneça exemplos visuais e ideias disruptivas.
 - Use emojis criativos 🎨🚀
@@ -126,7 +139,6 @@ RESTRIÇÃO DE ESCOPO:
 
 Regras:
 - Responda ESTRITAMENTE o que foi perguntado.
-- ESTRUTURA OBRIGATÓRIA: Comece com um resumo curto, depois insira o comando [IMAGE: descrição] para gerar pelo menos 3 imagens reais, e finalize com o contexto completo ou desdobramentos. As imagens devem ficar no meio do texto.
 - Resuma de forma clara e curta.
 - Sempre que possível, forneça exemplos de contexto e ideias de impacto.
 - Use poucos emojis informativos 📰🌍
@@ -250,37 +262,84 @@ Regras:
           </div>
         </nav>
 
-        <div className="p-6 bg-zinc-50 dark:bg-zinc-900/30 border-t border-zinc-100 dark:border-white/5">
+        <div className="p-4 bg-zinc-50 dark:bg-zinc-900/30 border-t border-zinc-100 dark:border-white/5 relative">
           {user && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-zinc-800 shadow-inner">
-                  <img 
-                    src={user.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${user.email || user.user_metadata.email}&background=333&color=fff`} 
-                    alt="Profile" 
-                    className="w-full h-full object-cover"
-                  />
+            <>
+              {showUserMenu && (
+                <div 
+                  ref={menuRef}
+                  className="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-[6px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-2 duration-200 z-[110]"
+                >
+                  <div className="p-2 space-y-1">
+                    <button 
+                      onClick={() => { onOpenSettings(); setShowUserMenu(false); }}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors text-left group"
+                    >
+                      <UserIcon className="w-4 h-4 text-zinc-500 dark:text-white group-hover:text-zinc-900 dark:group-hover:text-white" />
+                      <span className="text-sm font-medium text-zinc-700 dark:text-white/80">Perfil</span>
+                    </button>
+                    
+                    <button 
+                      onClick={() => { onOpenBilling(); setShowUserMenu(false); }}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors text-left group"
+                    >
+                      <CreditCard className="w-4 h-4 text-zinc-500 dark:text-white group-hover:text-zinc-900 dark:group-hover:text-white" />
+                      <span className="text-sm font-medium text-zinc-700 dark:text-white/80">Fazer upgrade de plano</span>
+                    </button>
+
+                    <button 
+                      onClick={() => { onOpenSettings(); setShowUserMenu(false); }}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors text-left group"
+                    >
+                      <Settings className="w-4 h-4 text-zinc-500 dark:text-white/60 group-hover:text-zinc-900 dark:group-hover:text-white" />
+                      <span className="text-sm font-medium text-zinc-700 dark:text-white/80">Configurações</span>
+                    </button>
+
+                    <button 
+                      onClick={() => setShowUserMenu(false)}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors text-left group"
+                    >
+                      <HelpCircle className="w-4 h-4 text-zinc-500 dark:text-white/60 group-hover:text-zinc-900 dark:group-hover:text-white" />
+                      <span className="text-sm font-medium text-zinc-700 dark:text-white/80">Ajuda</span>
+                    </button>
+
+                    <div className="h-px bg-zinc-100 dark:bg-white/5 my-1" />
+
+                    <button 
+                      onClick={() => { handleLogout(); setShowUserMenu(false); }}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left group"
+                    >
+                      <LogOut className="w-4 h-4 text-red-500" />
+                      <span className="text-sm font-medium text-red-500">Sair</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-zinc-900 dark:text-white font-semibold text-sm leading-tight truncate max-w-[120px]">
-                    {user.user_metadata.full_name || (user.email || user.user_metadata.email)?.split('@')[0]}
-                  </span>
-                  <button 
-                    onClick={onOpenBilling}
-                    className="text-[10px] text-zinc-400 dark:text-white/40 font-medium uppercase tracking-widest hover:text-blue-500 transition-colors text-left"
-                  >
-                    Premium
-                  </button>
-                </div>
-              </div>
-              <button 
-                onClick={handleLogout}
-                className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                title="Sair"
+              )}
+
+              <div 
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center justify-between cursor-pointer hover:bg-zinc-100 dark:hover:bg-white/5 p-2 rounded-xl transition-all group"
               >
-                <LogOut className="w-5 h-5" />
-              </button>
-            </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-zinc-800 shadow-inner">
+                    <img 
+                      src={user.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${user.email || user.user_metadata.email}&background=333&color=fff`} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-zinc-900 dark:text-white font-semibold text-sm leading-tight truncate max-w-[120px]">
+                      {user.user_metadata.full_name || (user.email || user.user_metadata.email)?.split('@')[0]}
+                    </span>
+                    <span className="text-[10px] text-zinc-400 dark:text-white/40 font-medium uppercase tracking-widest">
+                      Premium
+                    </span>
+                  </div>
+                </div>
+                <MoreVertical className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors" />
+              </div>
+            </>
           )}
         </div>
       </div>
