@@ -120,7 +120,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled })
 
   return (
     <div className="p-4 md:p-6 bg-gradient-to-t from-white via-white/95 to-transparent dark:from-black dark:via-black/95 dark:to-transparent transition-colors duration-300">
-      <div className="max-w-4xl mx-auto relative group">
+      <div className="max-w-3xl mx-auto relative group">
         <input 
           type="file"
           ref={fileInputRef}

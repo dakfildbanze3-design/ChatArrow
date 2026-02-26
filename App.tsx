@@ -460,7 +460,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="max-w-4xl mx-auto py-8 w-full">
+                <div className="max-w-3xl mx-auto py-8 w-full">
                   {state.messages.map((msg) => (
                     <MessageItem key={msg.id} message={msg} settings={state.settings} />
                   ))}
@@ -468,21 +468,19 @@ const App: React.FC = () => {
                   {state.isLoading && (
                     <div className="flex flex-col gap-2 mb-8 ml-2">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 flex items-center justify-center">
+                        <div className="w-8 h-8 flex items-center justify-center bg-black dark:bg-white rounded-full">
                           <svg 
-                            width="24" 
-                            height="24" 
+                            width="20" 
+                            height="20" 
                             viewBox="0 0 24 24" 
                             fill="none" 
                             stroke="currentColor" 
-                            strokeWidth="1.5" 
+                            strokeWidth="2" 
                             strokeLinecap="round" 
                             strokeLinejoin="round" 
-                            className="text-white animate-pulse"
+                            className="text-white dark:text-black animate-pulse"
                           >
-                            <path d="M12 3L2 21H22L12 3Z" />
-                            <path d="M12 3V21" />
-                            <path d="M2 21L12 12L22 21" />
+                            <path d="M12 3L4 21h4l2-5h8l2 5h4L12 3zm-2 11l2-5 2 5h-4z" fill="currentColor" />
                           </svg>
                         </div>
                       </div>

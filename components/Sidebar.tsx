@@ -83,8 +83,9 @@ Regras:
 - Explique de forma simples e resumida.
 - Sempre que possível, forneça exemplos práticos e novas ideias.
 - Use emojis educativos 📚✨
-- Não escreva textos longos.
-- Organize com pequenas divisões (---).
+- OBRIGATÓRIO: Organize as respostas em "estrofes" de 6 a 7 linhas curtas.
+- OBRIGATÓRIO: Inicie cada estrofe com um emoji ou número.
+- OBRIGATÓRIO: Divida as estrofes com linhas horizontais (---).
 - Você DEVE dividir temas diferentes usando títulos de Markdown (## Título do Tema).
 - Nunca use balões de fala.`
     },
@@ -102,9 +103,9 @@ Regras:
 - Analise de forma objetiva com tópicos curtos.
 - Sempre que possível, forneça exemplos de mercado e ideias inovadoras.
 - Use emojis profissionais 💼📈
-- Não escreva respostas longas.
-- Separe ideias com linhas (---).
-- Seja prático e direto ao ponto.
+- OBRIGATÓRIO: Organize as respostas em "estrofes" de 6 a 7 linhas curtas.
+- OBRIGATÓRIO: Inicie cada estrofe com um emoji ou número.
+- OBRIGATÓRIO: Divida as estrofes com linhas horizontais (---).
 - Você DEVE dividir temas diferentes usando títulos de Markdown (## Título do Tema).
 - Nunca use balões de fala.`
     },
@@ -122,9 +123,9 @@ Regras:
 - Gere ideias impactantes e resumidas.
 - Sempre que possível, forneça exemplos visuais e ideias disruptivas.
 - Use emojis criativos 🎨🚀
-- Não escreva textos muito longos.
-- Organize com pequenas divisões (---).
-- Seja original e envolvente.
+- OBRIGATÓRIO: Organize as respostas em "estrofes" de 6 a 7 linhas curtas.
+- OBRIGATÓRIO: Inicie cada estrofe com um emoji ou número.
+- OBRIGATÓRIO: Divida as estrofes com linhas horizontais (---).
 - Você DEVE dividir temas diferentes usando títulos de Markdown (## Título do Tema).
 - Nunca use balões de fala.`
     },
@@ -142,9 +143,9 @@ Regras:
 - Resuma de forma clara e curta.
 - Sempre que possível, forneça exemplos de contexto e ideias de impacto.
 - Use poucos emojis informativos 📰🌍
-- Não escreva textos longos.
-- Separe os tópicos com (---).
-- Seja neutro e objetivo.
+- OBRIGATÓRIO: Organize as respostas em "estrofes" de 6 a 7 linhas curtas.
+- OBRIGATÓRIO: Inicie cada estrofe com um emoji ou número.
+- OBRIGATÓRIO: Divida as estrofes com linhas horizontais (---).
 - Você DEVE dividir temas diferentes usando títulos de Markdown (## Título do Tema).
 - Nunca use balões de fala.`
     },
@@ -167,7 +168,7 @@ Regras:
 
       {/* Sidebar Container */}
       <div className={`
-        fixed top-0 left-0 bottom-0 z-[100] w-full max-w-[300px] bg-white dark:bg-zinc-950 flex flex-col shadow-[10px_0_30px_rgba(0,0,0,0.1)] dark:shadow-[10px_0_30px_rgba(0,0,0,0.5)] transition-all duration-300 border-r border-zinc-200 dark:border-white/5
+        fixed top-0 left-0 bottom-0 z-[100] w-full max-w-[260px] bg-white dark:bg-zinc-950 flex flex-col shadow-[10px_0_30px_rgba(0,0,0,0.1)] dark:shadow-[10px_0_30px_rgba(0,0,0,0.5)] transition-all duration-300 border-r border-zinc-200 dark:border-white/5
         md:relative md:z-0 md:flex-shrink-0
         ${isOpen ? 'translate-x-0 opacity-100 w-full' : '-translate-x-full opacity-0 w-0 overflow-hidden'}
       `}>
