@@ -21,6 +21,7 @@ import {
 import { Conversation } from '../types';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseService';
+import { GLOBAL_AI_INSTRUCTION } from '../constants';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -50,18 +51,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onLoginClick
 }) => {
   const ICON_PATH = 'assets/images/10_de_fev._de_2026,_15_01_43.png';
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -86,7 +75,9 @@ Regras:
 - OBRIGATÓRIO: Formate as respostas em "estrofes" com Título (com emoji), blockquote opcional, lista de pontos curtos e conclusão.
 - OBRIGATÓRIO: Separe CADA estrofe com uma linha divisória horizontal (---).
 - Você DEVE dividir temas diferentes usando títulos de Markdown (## Título do Tema).
-- Nunca use balões de fala.`
+- Nunca use balões de fala.
+
+${GLOBAL_AI_INSTRUCTION}`
     },
     { 
       icon: Briefcase, 
@@ -105,7 +96,9 @@ Regras:
 - OBRIGATÓRIO: Formate as respostas em "estrofes" com Título (com emoji), blockquote opcional, lista de pontos curtos e conclusão.
 - OBRIGATÓRIO: Separe CADA estrofe com uma linha divisória horizontal (---).
 - Você DEVE dividir temas diferentes usando títulos de Markdown (## Título do Tema).
-- Nunca use balões de fala.`
+- Nunca use balões de fala.
+
+${GLOBAL_AI_INSTRUCTION}`
     },
     { 
       icon: Palette, 
@@ -124,7 +117,9 @@ Regras:
 - OBRIGATÓRIO: Formate as respostas em "estrofes" com Título (com emoji), blockquote opcional, lista de pontos curtos e conclusão.
 - OBRIGATÓRIO: Separe CADA estrofe com uma linha divisória horizontal (---).
 - Você DEVE dividir temas diferentes usando títulos de Markdown (## Título do Tema).
-- Nunca use balões de fala.`
+- Nunca use balões de fala.
+
+${GLOBAL_AI_INSTRUCTION}`
     },
     { 
       icon: Newspaper, 
@@ -143,7 +138,9 @@ Regras:
 - OBRIGATÓRIO: Formate as respostas em "estrofes" com Título (com emoji), blockquote opcional, lista de pontos curtos e conclusão.
 - OBRIGATÓRIO: Separe CADA estrofe com uma linha divisória horizontal (---).
 - Você DEVE dividir temas diferentes usando títulos de Markdown (## Título do Tema).
-- Nunca use balões de fala.`
+- Nunca use balões de fala.
+
+${GLOBAL_AI_INSTRUCTION}`
     },
     { 
       icon: Settings, 
@@ -261,82 +258,29 @@ Regras:
 
         <div className="p-4 bg-zinc-50 dark:bg-zinc-900/30 border-t border-zinc-100 dark:border-white/5 relative">
           {user && (
-            <>
-              {showUserMenu && (
-                <div 
-                  ref={menuRef}
-                  className="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-[6px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom-2 duration-200 z-[110]"
-                >
-                  <div className="p-2 space-y-1">
-                    <button 
-                      onClick={() => { onOpenSettings(); setShowUserMenu(false); }}
-                      className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors text-left group"
-                    >
-                      <UserIcon className="w-4 h-4 text-zinc-500 dark:text-white group-hover:text-zinc-900 dark:group-hover:text-white" />
-                      <span className="text-sm font-medium text-zinc-700 dark:text-white/80">Perfil</span>
-                    </button>
-                    
-                    <button 
-                      onClick={() => { onOpenBilling(); setShowUserMenu(false); }}
-                      className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors text-left group"
-                    >
-                      <CreditCard className="w-4 h-4 text-zinc-500 dark:text-white group-hover:text-zinc-900 dark:group-hover:text-white" />
-                      <span className="text-sm font-medium text-zinc-700 dark:text-white/80">Fazer upgrade de plano</span>
-                    </button>
-
-                    <button 
-                      onClick={() => { onOpenSettings(); setShowUserMenu(false); }}
-                      className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors text-left group"
-                    >
-                      <Settings className="w-4 h-4 text-zinc-500 dark:text-white/60 group-hover:text-zinc-900 dark:group-hover:text-white" />
-                      <span className="text-sm font-medium text-zinc-700 dark:text-white/80">Configurações</span>
-                    </button>
-
-                    <button 
-                      onClick={() => setShowUserMenu(false)}
-                      className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors text-left group"
-                    >
-                      <HelpCircle className="w-4 h-4 text-zinc-500 dark:text-white/60 group-hover:text-zinc-900 dark:group-hover:text-white" />
-                      <span className="text-sm font-medium text-zinc-700 dark:text-white/80">Ajuda</span>
-                    </button>
-
-                    <div className="h-px bg-zinc-100 dark:bg-white/5 my-1" />
-
-                    <button 
-                      onClick={() => { handleLogout(); setShowUserMenu(false); }}
-                      className="w-full flex items-center gap-3 p-2.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left group"
-                    >
-                      <LogOut className="w-4 h-4 text-red-500" />
-                      <span className="text-sm font-medium text-red-500">Sair</span>
-                    </button>
-                  </div>
+            <div 
+              onClick={onOpenSettings}
+              className="flex items-center justify-between cursor-pointer hover:bg-zinc-100 dark:hover:bg-white/5 p-2 rounded-xl transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full overflow-hidden border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-zinc-800 shadow-inner">
+                  <img 
+                    src={user.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${user.email || user.user_metadata.email}&background=333&color=fff`} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-              )}
-
-              <div 
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center justify-between cursor-pointer hover:bg-zinc-100 dark:hover:bg-white/5 p-2 rounded-xl transition-all group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-zinc-800 shadow-inner">
-                    <img 
-                      src={user.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${user.email || user.user_metadata.email}&background=333&color=fff`} 
-                      alt="Profile" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-zinc-900 dark:text-white font-semibold text-sm leading-tight truncate max-w-[120px]">
-                      {user.user_metadata.full_name || (user.email || user.user_metadata.email)?.split('@')[0]}
-                    </span>
-                    <span className="text-[10px] text-zinc-400 dark:text-white/40 font-medium uppercase tracking-widest">
-                      Premium
-                    </span>
-                  </div>
+                <div className="flex flex-col">
+                  <span className="text-zinc-900 dark:text-white font-semibold text-sm leading-tight truncate max-w-[120px]">
+                    {user.user_metadata.full_name || (user.email || user.user_metadata.email)?.split('@')[0]}
+                  </span>
+                  <span className="text-[10px] text-zinc-400 dark:text-white/40 font-medium uppercase tracking-widest">
+                    Premium
+                  </span>
                 </div>
-                <MoreVertical className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors" />
               </div>
-            </>
+              <Settings className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors" />
+            </div>
           )}
         </div>
       </div>

@@ -15,12 +15,14 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, activeCategory, use
   return (
     <header className="flex items-center justify-between px-4 py-4 bg-white dark:bg-black shadow-sm dark:shadow-md sticky top-0 z-50 border-b border-zinc-100 dark:border-white/5 transition-colors duration-300">
       <div className="flex items-center gap-3">
-        <button 
-          onClick={onMenuClick}
-          className="p-1 hover:bg-zinc-100 dark:hover:bg-white/10 rounded-lg transition-colors"
-        >
-          <Menu className="w-6 h-6 text-zinc-900 dark:text-white" />
-        </button>
+        {user && (
+          <button 
+            onClick={onMenuClick}
+            className="p-1 hover:bg-zinc-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <Menu className="w-6 h-6 text-zinc-900 dark:text-white" />
+          </button>
+        )}
         
         <div className="flex items-center gap-2 cursor-pointer group">
           <a href="/" className="text-xl font-semibold italic text-zinc-900 dark:text-white tracking-tight font-['Inter'] hover:opacity-80 transition-opacity">

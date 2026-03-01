@@ -28,9 +28,10 @@ interface SettingsProps {
   onUpdate: (settings: AppSettings) => void;
   onClose: () => void;
   onOpenBilling: () => void;
+  onLogout?: () => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ settings, onUpdate, onClose, onOpenBilling }) => {
+export const Settings: React.FC<SettingsProps> = ({ settings, onUpdate, onClose, onOpenBilling, onLogout }) => {
   const updateNested = (section: keyof AppSettings, key: string, value: any) => {
     onUpdate({
       ...settings,
@@ -131,7 +132,10 @@ export const Settings: React.FC<SettingsProps> = ({ settings, onUpdate, onClose,
         </div>
 
         <div className="p-6 border-t border-zinc-100 dark:border-white/5">
-          <button className="flex items-center gap-3 w-full p-3 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-400/10 transition-all">
+          <button 
+            onClick={onLogout}
+            className="flex items-center gap-3 w-full p-3 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-400/10 transition-all"
+          >
             <LogOut className="w-5 h-5" />
             <span className="font-medium">Sair da Conta</span>
           </button>

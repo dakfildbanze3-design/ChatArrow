@@ -402,19 +402,21 @@ const App: React.FC = () => {
             />
           )}
 
-          <Sidebar 
-            isOpen={isSidebarOpen} 
-            onClose={() => setIsSidebarOpen(false)} 
-            onNewChat={handleNewChat}
-            onStartThemedChat={handleStartThemedChat}
-            conversations={state.conversations}
-            onLoadConversation={handleLoadConversation}
-            activeChatId={state.currentId}
-            onOpenSettings={() => window.location.hash = 'settings'}
-            onOpenBilling={() => window.location.hash = 'billing'}
-            user={user}
-            onLoginClick={() => setShowAuth(true)}
-          />
+          {user && (
+            <Sidebar 
+              isOpen={isSidebarOpen} 
+              onClose={() => setIsSidebarOpen(false)} 
+              onNewChat={handleNewChat}
+              onStartThemedChat={handleStartThemedChat}
+              conversations={state.conversations}
+              onLoadConversation={handleLoadConversation}
+              activeChatId={state.currentId}
+              onOpenSettings={() => window.location.hash = 'settings'}
+              onOpenBilling={() => window.location.hash = 'billing'}
+              user={user}
+              onLoginClick={() => setShowAuth(true)}
+            />
+          )}
 
           {state.showSettings && (
             <Settings 
@@ -422,6 +424,10 @@ const App: React.FC = () => {
               onUpdate={handleUpdateSettings}
               onClose={handleCloseSettings}
               onOpenBilling={() => window.location.hash = 'billing'}
+              onLogout={async () => {
+                await supabase.auth.signOut();
+                handleCloseSettings();
+              }}
             />
           )}
 

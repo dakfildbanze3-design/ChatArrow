@@ -2,6 +2,7 @@
 import { Message, GroundingUrl, AppSettings } from "../types";
 import { supabase } from "./supabaseService";
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+import { GLOBAL_AI_INSTRUCTION } from "../constants";
 
 export class GeminiService {
   private DEFAULT_INSTRUCTION = `Você é um Consultor Estratégico e Especialista Técnico de elite. Sua missão é entregar respostas que resolvam problemas reais com autoridade, clareza e profundidade estratégica.
@@ -45,7 +46,9 @@ Conclusão curta e direta.
 **🔥 Próximo Título**
 ...
 
-NUNCA crie blocos de texto densos. Mantenha muito espaço em branco e leitura escaneável.`;
+NUNCA crie blocos de texto densos. Mantenha muito espaço em branco e leitura escaneável.
+
+${GLOBAL_AI_INSTRUCTION}`;
 
   private ai: GoogleGenAI;
 
