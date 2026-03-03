@@ -18,7 +18,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, activeCategory, use
         {user && (
           <button 
             onClick={onMenuClick}
-            className="p-1 hover:bg-zinc-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+            className="p-1 hover:bg-zinc-100 dark:hover:bg-white/10 rounded-lg transition-colors md:hidden"
           >
             <Menu className="w-6 h-6 text-zinc-900 dark:text-white" />
           </button>

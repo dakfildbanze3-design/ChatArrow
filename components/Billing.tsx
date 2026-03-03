@@ -46,6 +46,18 @@ export const Billing: React.FC<BillingProps> = ({ onClose, currentPlan, subscrip
 
   const handlePlanClick = (plan: any) => {
     if (plan.current) return;
+    
+    if (plan.name === 'Free') {
+      onClose();
+      return;
+    }
+
+    if (plan.name === 'Pro' || plan.name === 'Premium') {
+      const message = encodeURIComponent(`Olá! Gostaria de assinar o plano ${plan.name} do aplicativo de IA.`);
+      window.open(`https://wa.me/258855767005?text=${message}`, '_blank');
+      return;
+    }
+
     setSelectedPlan(plan);
     setShowOperators(true);
   };
@@ -380,7 +392,7 @@ export const Billing: React.FC<BillingProps> = ({ onClose, currentPlan, subscrip
                 >
                   <CreditCard className="w-4 h-4" />
                   <span className="relative z-10">
-                    {plan.current ? 'Plano Atual' : 'Escolher Plano'}
+                    {plan.current ? 'Plano Atual' : (plan.name === 'Pro' || plan.name === 'Premium') ? 'Assinar via WhatsApp' : 'Escolher Plano'}
                   </span>
                 </button>
               </div>

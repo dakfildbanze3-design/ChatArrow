@@ -5,9 +5,10 @@ import { PlusCircle, SendHorizontal, FileText, Image, Camera, X, Mic } from 'luc
 interface ChatInputProps {
   onSendMessage: (text: string, images?: string[]) => void;
   disabled: boolean;
+  isFreePlan?: boolean;
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled }) => {
+export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled, isFreePlan = false }) => {
   const [text, setText] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
@@ -32,6 +33,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled })
       const reader = new FileReader();
       
       if (file.type.startsWith('image/')) {
+        if (isFreePlan) {
+          alert('A análise de imagens não está disponível no plano gratuito. Faça o upgrade para o plano Pro!');
+          return;
+        }
         reader.onloadend = () => {
           setSelectedImages(prev => [...prev, reader.result as string]);
         };
@@ -93,29 +98,31 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled })
       color: 'text-blue-400',
       onClick: () => fileInputRef.current?.click()
     },
-    { 
-      icon: <Image className="w-4 h-4" />, 
-      label: 'Fotos e Vídeos', 
-      color: 'text-purple-400',
-      onClick: () => {
-        if (fileInputRef.current) {
-          fileInputRef.current.accept = 'image/*,video/*';
-          fileInputRef.current.click();
+    ...(isFreePlan ? [] : [
+      { 
+        icon: <Image className="w-4 h-4" />, 
+        label: 'Fotos e Vídeos', 
+        color: 'text-purple-400',
+        onClick: () => {
+          if (fileInputRef.current) {
+            fileInputRef.current.accept = 'image/*,video/*';
+            fileInputRef.current.click();
+          }
+        }
+      },
+      { 
+        icon: <Camera className="w-4 h-4" />, 
+        label: 'Câmera', 
+        color: 'text-pink-400',
+        onClick: () => {
+          if (fileInputRef.current) {
+            fileInputRef.current.accept = 'image/*';
+            fileInputRef.current.capture = 'environment';
+            fileInputRef.current.click();
+          }
         }
       }
-    },
-    { 
-      icon: <Camera className="w-4 h-4" />, 
-      label: 'Câmera', 
-      color: 'text-pink-400',
-      onClick: () => {
-        if (fileInputRef.current) {
-          fileInputRef.current.accept = 'image/*';
-          fileInputRef.current.capture = 'environment';
-          fileInputRef.current.click();
-        }
-      }
-    },
+    ])
   ];
 
   return (

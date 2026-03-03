@@ -33,6 +33,7 @@ interface SidebarProps {
   activeChatId?: string;
   onOpenSettings: () => void;
   onOpenBilling: () => void;
+  onOpenProfile: () => void;
   user: User | null;
   onLoginClick: () => void;
 }
@@ -47,10 +48,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeChatId,
   onOpenSettings,
   onOpenBilling,
+  onOpenProfile,
   user,
   onLoginClick
 }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const ICON_PATH = 'assets/images/10_de_fev._de_2026,_15_01_43.png';
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -67,15 +82,19 @@ RESTRIÇÃO DE ESCOPO:
 - Você deve responder APENAS questões relacionadas a estudos, educação e conhecimento acadêmico.
 - Se o usuário perguntar algo fora desse tema, responda de forma amigável e respeitosa que seu foco atual é ajudar com o aprendizado e que não pode tratar de outros assuntos no momento.
 
-Regras:
-- Responda ESTRITAMENTE o que foi perguntado.
+REGRAS ESPECÍFICAS DE RESPOSTA:
+- Quando o usuário perguntar sobre equações, fatos históricos, conceitos científicos ou QUALQUER outro assunto, você DEVE estruturar sua resposta para cobrir obrigatoriamente os seguintes pontos:
+  1. O porquê (A razão ou motivo por trás daquilo)
+  2. Como (O funcionamento, o processo ou a resolução)
+  3. Onde (O contexto espacial, aplicação ou origem)
+  4. Qual (A definição exata ou identificação)
+  5. Como foi (O contexto histórico, desenvolvimento ou evolução)
+
+Regras Gerais:
+- Responda ESTRITAMENTE o que foi perguntado, mas garantindo que os 5 pontos acima sejam abordados.
 - Explique de forma simples e resumida.
 - Sempre que possível, forneça exemplos práticos e novas ideias.
 - Use emojis educativos 📚✨
-- OBRIGATÓRIO: Formate as respostas em "estrofes" com Título (com emoji), blockquote opcional, lista de pontos curtos e conclusão.
-- OBRIGATÓRIO: Separe CADA estrofe com uma linha divisória horizontal (---).
-- Você DEVE dividir temas diferentes usando títulos de Markdown (## Título do Tema).
-- Nunca use balões de fala.
 
 ${GLOBAL_AI_INSTRUCTION}`
     },
@@ -93,10 +112,6 @@ Regras:
 - Analise de forma objetiva com tópicos curtos.
 - Sempre que possível, forneça exemplos de mercado e ideias inovadoras.
 - Use emojis profissionais 💼📈
-- OBRIGATÓRIO: Formate as respostas em "estrofes" com Título (com emoji), blockquote opcional, lista de pontos curtos e conclusão.
-- OBRIGATÓRIO: Separe CADA estrofe com uma linha divisória horizontal (---).
-- Você DEVE dividir temas diferentes usando títulos de Markdown (## Título do Tema).
-- Nunca use balões de fala.
 
 ${GLOBAL_AI_INSTRUCTION}`
     },
@@ -114,10 +129,6 @@ Regras:
 - Gere ideias impactantes e resumidas.
 - Sempre que possível, forneça exemplos visuais e ideias disruptivas.
 - Use emojis criativos 🎨🚀
-- OBRIGATÓRIO: Formate as respostas em "estrofes" com Título (com emoji), blockquote opcional, lista de pontos curtos e conclusão.
-- OBRIGATÓRIO: Separe CADA estrofe com uma linha divisória horizontal (---).
-- Você DEVE dividir temas diferentes usando títulos de Markdown (## Título do Tema).
-- Nunca use balões de fala.
 
 ${GLOBAL_AI_INSTRUCTION}`
     },
@@ -135,10 +146,6 @@ Regras:
 - Resuma de forma clara e curta.
 - Sempre que possível, forneça exemplos de contexto e ideias de impacto.
 - Use poucos emojis informativos 📰🌍
-- OBRIGATÓRIO: Formate as respostas em "estrofes" com Título (com emoji), blockquote opcional, lista de pontos curtos e conclusão.
-- OBRIGATÓRIO: Separe CADA estrofe com uma linha divisória horizontal (---).
-- Você DEVE dividir temas diferentes usando títulos de Markdown (## Título do Tema).
-- Nunca use balões de fala.
 
 ${GLOBAL_AI_INSTRUCTION}`
     },
@@ -161,9 +168,9 @@ ${GLOBAL_AI_INSTRUCTION}`
 
       {/* Sidebar Container */}
       <div className={`
-        fixed top-0 left-0 bottom-0 z-[100] w-full max-w-[260px] bg-white dark:bg-zinc-950 flex flex-col shadow-[10px_0_30px_rgba(0,0,0,0.1)] dark:shadow-[10px_0_30px_rgba(0,0,0,0.5)] transition-all duration-300 border-r border-zinc-200 dark:border-white/5
-        md:relative md:z-0 md:flex-shrink-0
-        ${isOpen ? 'translate-x-0 opacity-100 w-full' : '-translate-x-full opacity-0 w-0 overflow-hidden'}
+        fixed top-0 left-0 bottom-0 z-[100] w-[260px] bg-white dark:bg-zinc-950 flex flex-col shadow-[10px_0_30px_rgba(0,0,0,0.1)] dark:shadow-[10px_0_30px_rgba(0,0,0,0.5)] transition-all duration-300 border-r border-zinc-200 dark:border-white/5
+        md:relative md:z-0 md:flex-shrink-0 md:translate-x-0 md:opacity-100 md:w-[260px]
+        ${isOpen ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 md:opacity-100'}
       `}>
         
         <div className="flex items-center justify-between p-6">
@@ -179,7 +186,7 @@ ${GLOBAL_AI_INSTRUCTION}`
           </div>
           <button 
             onClick={onClose} 
-            className="p-2 text-zinc-400 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 rounded-full transition-colors"
+            className="p-2 text-zinc-400 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10 rounded-full transition-colors md:hidden"
           >
             <X className="w-6 h-6" />
           </button>
@@ -256,31 +263,76 @@ ${GLOBAL_AI_INSTRUCTION}`
           </div>
         </nav>
 
-        <div className="p-4 bg-zinc-50 dark:bg-zinc-900/30 border-t border-zinc-100 dark:border-white/5 relative">
+        <div className="p-4 bg-zinc-50 dark:bg-zinc-900/30 border-t border-zinc-100 dark:border-white/5 relative" ref={menuRef}>
           {user && (
-            <div 
-              onClick={onOpenSettings}
-              className="flex items-center justify-between cursor-pointer hover:bg-zinc-100 dark:hover:bg-white/5 p-2 rounded-xl transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-zinc-800 shadow-inner">
-                  <img 
-                    src={user.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${user.email || user.user_metadata.email}&background=333&color=fff`} 
-                    alt="Profile" 
-                    className="w-full h-full object-cover"
-                  />
+            <>
+              <div 
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="flex items-center justify-between cursor-pointer hover:bg-zinc-100 dark:hover:bg-white/5 p-2 rounded-xl transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-zinc-800 shadow-inner">
+                    <img 
+                      src={user.user_metadata.avatar_url || `https://ui-avatars.com/api/?name=${user.email || user.user_metadata.email}&background=333&color=fff`} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-zinc-900 dark:text-white font-semibold text-sm leading-tight truncate max-w-[120px]">
+                      {user.user_metadata.full_name || (user.email || user.user_metadata.email)?.split('@')[0]}
+                    </span>
+                    <span className="text-[10px] text-zinc-400 dark:text-white/40 font-medium uppercase tracking-widest">
+                      Premium
+                    </span>
+                  </div>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-zinc-900 dark:text-white font-semibold text-sm leading-tight truncate max-w-[120px]">
-                    {user.user_metadata.full_name || (user.email || user.user_metadata.email)?.split('@')[0]}
-                  </span>
-                  <span className="text-[10px] text-zinc-400 dark:text-white/40 font-medium uppercase tracking-widest">
-                    Premium
-                  </span>
-                </div>
+                <MoreVertical className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors" />
               </div>
-              <Settings className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors" />
-            </div>
+
+              {isMenuOpen && (
+                <div className="absolute bottom-full left-4 right-4 mb-2 bg-zinc-900 rounded-2xl shadow-xl border border-white/10 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200 z-50">
+                  <div className="p-2 space-y-1">
+                    <button 
+                      onClick={() => { onOpenProfile(); setIsMenuOpen(false); }}
+                      className="flex items-center gap-3 w-full p-3 rounded-xl text-white hover:bg-white/10 transition-colors text-left"
+                    >
+                      <UserIcon className="w-5 h-5 text-white" />
+                      <span className="font-medium text-sm">Perfil</span>
+                    </button>
+                    <button 
+                      onClick={() => { onOpenBilling(); setIsMenuOpen(false); }}
+                      className="flex items-center gap-3 w-full p-3 rounded-xl text-white hover:bg-white/10 transition-colors text-left"
+                    >
+                      <CreditCard className="w-5 h-5 text-white" />
+                      <span className="font-medium text-sm">Fazer upgrade de plano</span>
+                    </button>
+                    <button 
+                      onClick={() => { onOpenSettings(); setIsMenuOpen(false); }}
+                      className="flex items-center gap-3 w-full p-3 rounded-xl text-white hover:bg-white/10 transition-colors text-left"
+                    >
+                      <Settings className="w-5 h-5 text-white" />
+                      <span className="font-medium text-sm">Configurações</span>
+                    </button>
+                    <button 
+                      onClick={() => { setIsMenuOpen(false); }}
+                      className="flex items-center gap-3 w-full p-3 rounded-xl text-white hover:bg-white/10 transition-colors text-left"
+                    >
+                      <HelpCircle className="w-5 h-5 text-white" />
+                      <span className="font-medium text-sm">Ajuda</span>
+                    </button>
+                    <div className="h-px bg-white/10 my-1" />
+                    <button 
+                      onClick={() => { handleLogout(); setIsMenuOpen(false); }}
+                      className="flex items-center gap-3 w-full p-3 rounded-xl text-white hover:bg-white/10 transition-colors text-left"
+                    >
+                      <LogOut className="w-5 h-5 text-white" />
+                      <span className="font-medium text-sm">Sair</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

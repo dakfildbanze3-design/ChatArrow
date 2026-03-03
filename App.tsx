@@ -7,6 +7,7 @@ import { Sidebar } from './components/Sidebar';
 import { Settings } from './components/Settings';
 import { Auth } from './components/Auth';
 import { Billing } from './components/Billing';
+import { Profile } from './components/Profile';
 import { Message, ChatState, Conversation, AppSettings } from './types';
 import { geminiService } from './services/geminiService';
 import { supabaseService, supabase } from './services/supabaseService';
@@ -19,6 +20,7 @@ const App: React.FC = () => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
   const [showBilling, setShowBilling] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [state, setState] = useState<ChatState>({
     currentId: crypto.randomUUID(),
     messages: [],
@@ -138,15 +140,23 @@ const App: React.FC = () => {
   };
 
   const loadData = async () => {
-    const history = await supabaseService.fetchConversations();
+    let history = await supabaseService.fetchConversations();
     const subscription = await paymentService.getActiveSubscription();
+    const plan = subscription ? subscription.plan_name : 'Free';
+    
+    // Filter history to 3 days for Free plan
+    if (plan === 'Free') {
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+      history = history.filter(conv => new Date(conv.lastUpdated) >= threeDaysAgo);
+    }
     
     setState(prev => ({ 
       ...prev, 
       conversations: history,
       settings: {
         ...prev.settings,
-        plan: subscription ? subscription.plan_name : 'Free',
+        plan,
         subscription: subscription || undefined
       }
     }));
@@ -286,6 +296,105 @@ const App: React.FC = () => {
   };
 
   const handleSendMessage = async (text: string, images?: string[]) => {
+    const isFreePlan = state.settings.plan === 'Free';
+    const isProPlan = state.settings.plan === 'Pro';
+    
+    // Check image restriction for Free plan
+    if (isFreePlan && images && images.length > 0) {
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'model',
+        text: '⚠️ **Recurso Premium**\n\nA análise de imagens não está disponível no plano gratuito. Faça o upgrade para o plano **Pro** para usar este recurso!',
+        timestamp: new Date()
+      };
+      setState(prev => ({
+        ...prev,
+        messages: [...prev.messages, {
+          id: crypto.randomUUID(),
+          role: 'user',
+          text,
+          images,
+          timestamp: new Date()
+        }, errorMessage]
+      }));
+      setTimeout(scrollToBottom, 100);
+      return;
+    }
+
+    // Check monthly image limit for Pro plan (50 images)
+    if (isProPlan && images && images.length > 0) {
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      let monthImageCount = 0;
+
+      const countImages = (msg: Message) => {
+        if (msg.role === 'user' && msg.images && new Date(msg.timestamp) >= firstDayOfMonth) {
+          monthImageCount += msg.images.length;
+        }
+      };
+
+      state.conversations.forEach(conv => conv.messages.forEach(countImages));
+      state.messages.forEach(countImages);
+
+      if (monthImageCount + images.length > 50) {
+        const limitMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'model',
+          text: '⚠️ **Limite Mensal de Imagens Atingido**\n\nVocê atingiu o limite de 50 imagens por mês do plano Pro. Faça o upgrade para o plano **Premium** para continuar analisando imagens sem limites!',
+          timestamp: new Date()
+        };
+        setState(prev => ({
+          ...prev,
+          messages: [...prev.messages, {
+            id: crypto.randomUUID(),
+            role: 'user',
+            text,
+            timestamp: new Date()
+          }, limitMessage]
+        }));
+        setTimeout(scrollToBottom, 100);
+        return;
+      }
+    }
+
+    // Check daily message limit for Free plan
+    if (isFreePlan) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      let todayCount = 0;
+      const uniqueIds = new Set<string>();
+
+      const countMsg = (msg: Message) => {
+        if (msg.role === 'user' && new Date(msg.timestamp) >= today && !uniqueIds.has(msg.id)) {
+          uniqueIds.add(msg.id);
+          todayCount++;
+        }
+      };
+
+      state.conversations.forEach(conv => conv.messages.forEach(countMsg));
+      state.messages.forEach(countMsg);
+
+      if (todayCount >= 10) {
+        const limitMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'model',
+          text: '⚠️ **Limite Diário Atingido**\n\nVocê atingiu o limite de 10 mensagens por dia do plano gratuito. Faça o upgrade para o plano **Pro** para continuar conversando sem limites!',
+          timestamp: new Date()
+        };
+        setState(prev => ({
+          ...prev,
+          messages: [...prev.messages, {
+            id: crypto.randomUUID(),
+            role: 'user',
+            text,
+            timestamp: new Date()
+          }, limitMessage]
+        }));
+        setTimeout(scrollToBottom, 100);
+        return;
+      }
+    }
+
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -315,12 +424,21 @@ const App: React.FC = () => {
       
       // Criar placeholder para a mensagem da IA que será atualizada via stream
       const aiMessageId = crypto.randomUUID();
+      let modelToUse = 'gemini-flash-lite-latest';
+      if (isFreePlan) {
+        modelToUse = 'gemini-flash-lite-latest';
+      } else if (isProPlan || state.settings.plan === 'Premium') {
+        modelToUse = 'gemini-3.1-pro-preview';
+      } else {
+        modelToUse = state.settings.model.mode === 'Preciso' ? 'gemini-3.1-pro-preview' : 'gemini-flash-lite-latest';
+      }
+      
       const initialAiMessage: Message = {
         id: aiMessageId,
         role: 'model',
         text: '',
         timestamp: new Date(),
-        model: state.settings.model.mode === 'Preciso' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview'
+        model: modelToUse
       };
 
       setState(prev => ({
@@ -398,7 +516,12 @@ const App: React.FC = () => {
           {showAuth && !user && (
             <Auth 
               onClose={() => setShowAuth(false)} 
-              onLoginSuccess={() => setShowAuth(false)} 
+              onLoginSuccess={(isSignup) => {
+                setShowAuth(false);
+                if (isSignup) {
+                  window.location.hash = 'billing';
+                }
+              }} 
             />
           )}
 
@@ -413,8 +536,16 @@ const App: React.FC = () => {
               activeChatId={state.currentId}
               onOpenSettings={() => window.location.hash = 'settings'}
               onOpenBilling={() => window.location.hash = 'billing'}
+              onOpenProfile={() => setShowProfile(true)}
               user={user}
               onLoginClick={() => setShowAuth(true)}
+            />
+          )}
+
+          {showProfile && user && (
+            <Profile 
+              user={user} 
+              onClose={() => setShowProfile(false)} 
             />
           )}
 
@@ -506,6 +637,7 @@ const App: React.FC = () => {
               <ChatInput 
                 onSendMessage={handleSendMessage} 
                 disabled={state.isLoading} 
+                isFreePlan={state.settings.plan === 'Free'}
               />
             </div>
           </div>

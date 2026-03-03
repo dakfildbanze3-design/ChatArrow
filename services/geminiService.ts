@@ -19,35 +19,6 @@ REGRAS DE TOM E COMPORTAMENTO:
 - Utilize um vocabulário responsável, polido e profissional em todas as interações.
 - Evite gírias, expressões coloquiais ou tom excessivamente íntimo.
 
-REGRAS DE FORMATAÇÃO E ORGANIZAÇÃO (OBRIGATÓRIO):
-Você deve formatar TODAS as suas respostas seguindo EXATAMENTE esta estrutura visual de "estrofes":
-
-1. Comece cada seção com um Título em negrito e um emoji (ex: **💳 O que aconteceu**)
-2. Se houver uma citação ou mensagem de erro, use blockquote (ex: > "Mensagem de erro")
-3. Use uma frase curta de introdução (ex: Quer dizer:)
-4. Use uma lista com marcadores (bullet points) ou números para os detalhes. Cada item da lista deve ser curto.
-5. Adicione 1 ou 2 frases curtas de conclusão após a lista.
-6. OBRIGATÓRIO: Separe CADA seção/estrofe com uma linha divisória horizontal (---).
-
-Exemplo de Estrutura Esperada:
-**🤖 Título da Seção**
-
-> "Citação ou foco principal se aplicável"
-
-Frase introdutória:
-- Ponto 1 curto e direto
-- Ponto 2 curto e direto
-- Ponto 3 curto e direto
-
-Conclusão curta e direta.
-
----
-
-**🔥 Próximo Título**
-...
-
-NUNCA crie blocos de texto densos. Mantenha muito espaço em branco e leitura escaneável.
-
 ${GLOBAL_AI_INSTRUCTION}`;
 
   private ai: GoogleGenAI;
@@ -57,12 +28,21 @@ ${GLOBAL_AI_INSTRUCTION}`;
   }
 
   private getSystemInstruction(settings?: AppSettings, customInstruction?: string): string {
-    if (customInstruction) return customInstruction;
+    let base = this.DEFAULT_INSTRUCTION;
+    if (customInstruction) {
+      base = customInstruction;
+    }
     
-    const base = this.DEFAULT_INSTRUCTION;
     if (!settings) return base;
 
-    const { ai } = settings;
+    const { ai, plan } = settings;
+    
+    let planInstruction = '';
+    if (plan === 'Pro') {
+      planInstruction = '\n- NÍVEL DE SERVIÇO (PRO): O usuário possui um plano avançado. Forneça respostas extremamente completas, detalhadas e com suporte prioritário simulado (maior profundidade técnica e exemplos práticos).';
+    } else if (plan === 'Premium') {
+      planInstruction = '\n- NÍVEL DE SERVIÇO (PREMIUM VIP): O usuário possui o plano máximo (Premium). Forneça respostas extremamente rápidas, técnicas, detalhadas, criativas e profundas. Simule um suporte VIP 24/7. Entregue respostas completas, bem organizadas, com alta qualidade, divisões visuais claras e uso equilibrado de emojis. NUNCA mencione limites de uso e NUNCA sugira upgrades.';
+    }
     
     return `${base}
 
@@ -70,7 +50,7 @@ CONFIGURAÇÕES ADICIONAIS DO USUÁRIO:
 - Idioma: ${ai.language}
 - Personalidade Base: ${ai.personality}
 - Tom de Voz: ${ai.style}
-- Preferência de Tamanho: ${ai.length} (Priorize a profundidade solicitada nas diretrizes principais acima).`;
+- Preferência de Tamanho: ${ai.length} (Priorize a profundidade solicitada nas diretrizes principais acima).${planInstruction}`;
   }
 
   async sendMessageStream(
@@ -83,19 +63,19 @@ CONFIGURAÇÕES ADICIONAIS DO USUÁRIO:
   ): Promise<{ text: string; images?: string[]; groundingUrls?: GroundingUrl[]; usage?: any; model?: string }> {
     try {
       // 1. Otimização de Histórico: 
-      // Se o histórico for muito longo (> 10 mensagens), resumimos as mensagens antigas
+      // Se o histórico for muito longo (> 10 mensagens), resumimos as mensagens antigas (exceto para plano Pro/Premium)
       let processedHistory = [...history];
-      if (processedHistory.length > 10) {
-        const toSummarize = processedHistory.slice(0, -5);
-        const recent = processedHistory.slice(-5);
-        
-        // Simulação de resumo para economizar tokens e tempo
-        // Em um cenário real, poderíamos chamar o modelo para resumir, 
-        // mas para velocidade instantânea, apenas truncamos ou usamos um resumo estático
-        const summary = `[Resumo do contexto anterior: O usuário e a IA discutiram sobre ${toSummarize.length} tópicos anteriores.]`;
-        processedHistory = [{ id: 'summary', role: 'model', text: summary, timestamp: new Date() }, ...recent];
-      } else {
-        processedHistory = processedHistory.slice(-5); // Mantém apenas as últimas 5 para latência mínima
+      if (settings?.plan !== 'Pro' && settings?.plan !== 'Premium') {
+        if (processedHistory.length > 10) {
+          const toSummarize = processedHistory.slice(0, -5);
+          const recent = processedHistory.slice(-5);
+          
+          // Simulação de resumo para economizar tokens e tempo
+          const summary = `[Resumo do contexto anterior: O usuário e a IA discutiram sobre ${toSummarize.length} tópicos anteriores.]`;
+          processedHistory = [{ id: 'summary', role: 'model', text: summary, timestamp: new Date() }, ...recent];
+        } else {
+          processedHistory = processedHistory.slice(-5); // Mantém apenas as últimas 5 para latência mínima
+        }
       }
 
       const contents = processedHistory.map(msg => {
@@ -139,7 +119,14 @@ CONFIGURAÇÕES ADICIONAIS DO USUÁRIO:
       });
 
       // 2. Modelo Otimizado para Velocidade
-      const modelName = settings?.model.mode === 'Preciso' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview';
+      let modelName = 'gemini-flash-lite-latest';
+      if (settings?.plan === 'Free') {
+        modelName = 'gemini-flash-lite-latest';
+      } else if (settings?.plan === 'Pro' || settings?.plan === 'Premium') {
+        modelName = 'gemini-3.1-pro-preview';
+      } else {
+        modelName = settings?.model.mode === 'Preciso' ? 'gemini-3.1-pro-preview' : 'gemini-flash-lite-latest';
+      }
 
       const responseStream = await this.ai.models.generateContentStream({
         model: modelName,
@@ -175,7 +162,7 @@ CONFIGURAÇÕES ADICIONAIS DO USUÁRIO:
   async generateTitle(firstMessage: string): Promise<string> {
     try {
       const response = await this.ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-flash-lite-latest',
         contents: [{ role: 'user', parts: [{ text: `Gere um título curto (máximo 4 palavras) para: "${firstMessage}". Responda APENAS com o título.` }] }],
         config: { temperature: 0.5 }
       });

@@ -4,7 +4,7 @@ import { X, Mail, Github, Chrome, User, Upload, ArrowRight, Camera } from 'lucid
 
 interface AuthProps {
   onClose: () => void;
-  onLoginSuccess: () => void;
+  onLoginSuccess: (isSignup?: boolean) => void;
 }
 
 export const Auth: React.FC<AuthProps> = ({ onClose, onLoginSuccess }) => {
@@ -67,7 +67,7 @@ export const Auth: React.FC<AuthProps> = ({ onClose, onLoginSuccess }) => {
 
       if (error) throw error;
       
-      onLoginSuccess();
+      onLoginSuccess(!isLogin);
       onClose();
     } catch (err: any) {
       setError(err.message);
