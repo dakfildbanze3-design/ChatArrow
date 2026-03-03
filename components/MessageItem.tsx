@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Message, AppSettings } from '../types';
 import ReactMarkdown from 'react-markdown';
 import { Copy, Check, ExternalLink, Globe, Cpu, Zap, Activity, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { useToast } from '../src/contexts/ToastContext';
 
 interface MessageItemProps {
   message: Message;
@@ -13,9 +14,12 @@ const CodeBlock = ({ children, className }: { children?: any; className?: string
   const [copied, setCopied] = useState(false);
   const code = String(children || '').replace(/\n$/, '');
 
+  const { showToast } = useToast();
+
   const handleCopy = () => {
     navigator.clipboard.writeText(code);
     setCopied(true);
+    showToast('Código copiado para a área de transferência', 'info');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -44,10 +48,12 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, settings }) =
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
   const [feedback, setFeedback] = useState<'up' | 'down' | null>(null);
+  const { showToast } = useToast();
 
   const handleCopyMessage = () => {
     navigator.clipboard.writeText(message.text);
     setCopied(true);
+    showToast('Mensagem copiada', 'info');
     setTimeout(() => setCopied(false), 2000);
   };
 

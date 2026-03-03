@@ -66,6 +66,21 @@ export const supabaseService = {
     return conversationsWithMessages;
   },
 
+  async fetchPlans(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('plans')
+      .select('*')
+      .eq('active', true)
+      .order('price', { ascending: true });
+
+    if (error) {
+      console.error('Erro ao buscar planos:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
   async upsertConversation(conv: Conversation): Promise<void> {
     const user = await this.getCurrentUser();
     if (!user) return; // Não salva se não estiver logado

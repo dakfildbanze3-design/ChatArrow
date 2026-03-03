@@ -16,11 +16,13 @@ import {
   User as UserIcon,
   CreditCard,
   HelpCircle,
-  MoreVertical
+  MoreVertical,
+  Trash2
 } from 'lucide-react';
 import { Conversation } from '../types';
 import { User } from '@supabase/supabase-js';
-import { supabase } from '../services/supabaseService';
+import { supabase, supabaseService } from '../services/supabaseService';
+import { useToast } from '../src/contexts/ToastContext';
 import { GLOBAL_AI_INSTRUCTION } from '../constants';
 
 interface SidebarProps {
@@ -34,8 +36,10 @@ interface SidebarProps {
   onOpenSettings: () => void;
   onOpenBilling: () => void;
   onOpenProfile: () => void;
+  onDeleteConversation: (id: string) => void;
   user: User | null;
   onLoginClick: () => void;
+  plan: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -45,16 +49,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onStartThemedChat,
   conversations,
   onLoadConversation,
+  onDeleteConversation,
   activeChatId,
   onOpenSettings,
   onOpenBilling,
   onOpenProfile,
   user,
-  onLoginClick
+  onLoginClick,
+  plan
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { showToast } = useToast();
   const ICON_PATH = 'assets/images/10_de_fev._de_2026,_15_01_43.png';
+
+  const handleDeleteConversation = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (confirm('Tem certeza que deseja excluir esta conversa?')) {
+      try {
+        await supabaseService.deleteConversation(id);
+        onDeleteConversation(id);
+        showToast('Conversa excluída', 'info');
+      } catch (error) {
+        showToast('Erro ao excluir conversa', 'error');
+      }
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -248,7 +268,7 @@ ${GLOBAL_AI_INSTRUCTION}`
                     <div className="w-8 h-8 rounded-lg bg-zinc-100 dark:bg-white/5 flex-shrink-0 flex items-center justify-center">
                       <MessageSquare className="w-4 h-4 text-zinc-400 dark:text-white/50 group-hover:text-zinc-900 dark:group-hover:text-white" />
                     </div>
-                    <div className="flex flex-col items-start overflow-hidden">
+                    <div className="flex flex-col items-start overflow-hidden flex-1">
                       <span className="text-sm font-medium text-zinc-700 dark:text-white/80 group-hover:text-zinc-900 dark:group-hover:text-white truncate w-full text-left">
                         {conv.title}
                       </span>
@@ -256,6 +276,12 @@ ${GLOBAL_AI_INSTRUCTION}`
                         {conv.category || 'Geral'} • {new Date(conv.lastUpdated).toLocaleDateString()}
                       </span>
                     </div>
+                    <button
+                      onClick={(e) => handleDeleteConversation(e, conv.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </button>
                 ))
               )}
@@ -283,7 +309,7 @@ ${GLOBAL_AI_INSTRUCTION}`
                       {user.user_metadata.full_name || (user.email || user.user_metadata.email)?.split('@')[0]}
                     </span>
                     <span className="text-[10px] text-zinc-400 dark:text-white/40 font-medium uppercase tracking-widest">
-                      Premium
+                      {plan}
                     </span>
                   </div>
                 </div>

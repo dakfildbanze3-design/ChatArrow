@@ -82,13 +82,24 @@ export const Auth: React.FC<AuthProps> = ({ onClose, onLoginSuccess }) => {
         provider,
         options: {
           redirectTo: window.location.origin,
-        },
+        }
       });
       if (error) throw error;
     } catch (err: any) {
       setError(err.message);
     }
   };
+
+  React.useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+        onLoginSuccess();
+        onClose();
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [onClose, onLoginSuccess]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-300">

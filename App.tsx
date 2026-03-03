@@ -8,6 +8,7 @@ import { Settings } from './components/Settings';
 import { Auth } from './components/Auth';
 import { Billing } from './components/Billing';
 import { Profile } from './components/Profile';
+import { useToast } from './src/contexts/ToastContext';
 import { Message, ChatState, Conversation, AppSettings } from './types';
 import { geminiService } from './services/geminiService';
 import { supabaseService, supabase } from './services/supabaseService';
@@ -21,6 +22,8 @@ const App: React.FC = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [showBilling, setShowBilling] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const { showToast } = useToast();
+
   const [state, setState] = useState<ChatState>({
     currentId: crypto.randomUUID(),
     messages: [],
@@ -81,12 +84,19 @@ const App: React.FC = () => {
       const currentUser = session?.user || null;
       
       if (currentUser) {
+        if (window.opener) {
+          window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*');
+          window.close();
+          return;
+        }
+
         if (isMounted) {
           // Só atualiza e carrega se o usuário mudou ou se for um evento de login/refresh
           setUser(prevUser => {
             if (prevUser?.id !== currentUser.id) {
               updateUserSettings(currentUser);
               loadData();
+              showToast('Bem-vindo de volta!', 'success');
             }
             return currentUser;
           });
@@ -94,8 +104,14 @@ const App: React.FC = () => {
         }
       } else if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !session)) {
         if (isMounted) {
+          const wasLoggedIn = !!user;
           setUser(null);
           setIsAuthLoading(false);
+          
+          if (wasLoggedIn && event === 'SIGNED_OUT') {
+            showToast('Sessão encerrada com sucesso', 'info');
+          }
+
           // Resetar estado apenas se deslogar manualmente ou se não houver sessão inicial
           setState(prev => ({
             ...prev,
@@ -262,6 +278,7 @@ const App: React.FC = () => {
       currentSystemInstruction: undefined,
       activeCategory: undefined
     }));
+    showToast('Novo chat iniciado', 'info');
   };
 
   const handleStartThemedChat = (instruction: string, categoryName: string) => {
@@ -286,6 +303,7 @@ const App: React.FC = () => {
       isLoading: false,
       error: null
     }));
+    showToast('Conversa carregada', 'info');
     
     // Pequeno delay para garantir que o DOM atualizou antes do scroll
     setTimeout(scrollToBottom, 100);
@@ -293,6 +311,21 @@ const App: React.FC = () => {
 
   const handleUpdateSettings = (newSettings: AppSettings) => {
     setState(prev => ({ ...prev, settings: newSettings }));
+    showToast('Configurações salvas', 'success');
+  };
+
+  const handleDeleteConversation = (id: string) => {
+    setState(prev => {
+      const updatedConversations = prev.conversations.filter(c => c.id !== id);
+      const isCurrentChat = prev.currentId === id;
+      
+      return {
+        ...prev,
+        conversations: updatedConversations,
+        messages: isCurrentChat ? [] : prev.messages,
+        currentId: isCurrentChat ? crypto.randomUUID() : prev.currentId
+      };
+    });
   };
 
   const handleSendMessage = async (text: string, images?: string[]) => {
@@ -533,12 +566,14 @@ const App: React.FC = () => {
               onStartThemedChat={handleStartThemedChat}
               conversations={state.conversations}
               onLoadConversation={handleLoadConversation}
+              onDeleteConversation={handleDeleteConversation}
               activeChatId={state.currentId}
               onOpenSettings={() => window.location.hash = 'settings'}
               onOpenBilling={() => window.location.hash = 'billing'}
               onOpenProfile={() => setShowProfile(true)}
               user={user}
               onLoginClick={() => setShowAuth(true)}
+              plan={state.settings.plan}
             />
           )}
 
@@ -546,6 +581,7 @@ const App: React.FC = () => {
             <Profile 
               user={user} 
               onClose={() => setShowProfile(false)} 
+              plan={state.settings.plan}
             />
           )}
 

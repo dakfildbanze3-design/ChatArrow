@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Check, Zap, Star, Shield, Crown, CreditCard, Loader2, Smartphone, ArrowLeft, Calendar, Clock, AlertCircle } from 'lucide-react';
 import { paymentService } from '../services/paymentService';
 import { supabaseService } from '../services/supabaseService';
+import { useToast } from '../src/contexts/ToastContext';
 import { Subscription } from '../types';
 
 interface BillingProps {
@@ -18,6 +19,39 @@ export const Billing: React.FC<BillingProps> = ({ onClose, currentPlan, subscrip
   const [selectedOperator, setSelectedOperator] = useState<'mpesa' | 'emola' | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    const loadPlans = async () => {
+      try {
+        const data = await supabaseService.fetchPlans();
+        
+        // Map icons based on plan name
+        const mappedPlans = data.map(plan => {
+          let icon = Star;
+          if (plan.icon === 'Zap') icon = Zap;
+          if (plan.icon === 'Crown') icon = Crown;
+          
+          return {
+            ...plan,
+            icon,
+            current: currentPlan === plan.name,
+            price: plan.price === 0 ? 'MZN 0' : `MZN ${plan.price.toLocaleString('pt-BR')}`
+          };
+        });
+        
+        setPlans(mappedPlans);
+      } catch (error) {
+        console.error('Erro ao carregar planos:', error);
+      } finally {
+        setLoadingPlans(false);
+      }
+    };
+    
+    loadPlans();
+  }, [currentPlan]);
 
   const daysRemaining = subscription?.expires_at 
     ? Math.ceil((subscription.expires_at.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -95,64 +129,14 @@ export const Billing: React.FC<BillingProps> = ({ onClose, currentPlan, subscrip
       });
 
       setPaymentSuccess(sub);
+      showToast('Pagamento iniciado! Verifique seu celular.', 'success');
     } catch (err) {
       console.error('Erro no pagamento:', err);
-      alert('Erro ao processar pagamento: ' + (err instanceof Error ? err.message : 'Tente novamente.'));
+      showToast('Erro ao processar pagamento. Tente novamente.', 'error');
     } finally {
       setIsProcessing(null);
     }
   };
-
-  const plans = [
-    {
-      name: 'Free',
-      price: 'MZN 0',
-      period: '/mês',
-      description: 'Para quem está começando a explorar IA.',
-      features: [
-        'Acesso ao modelo básico',
-        '10 mensagens por dia',
-        'Histórico de 3 dias',
-        'Suporte da comunidade'
-      ],
-      current: currentPlan === 'Free',
-      icon: Star,
-      accent: 'text-zinc-400'
-    },
-    {
-      name: 'Pro',
-      price: 'MZN 1.500',
-      period: '/mês',
-      description: 'Para uso diário com mais recursos.',
-      features: [
-        'Acesso ao modelo avançado',
-        'Mensagens ilimitadas',
-        'Geração de imagens (50/mês)',
-        'Histórico ilimitado',
-        'Suporte prioritário'
-      ],
-      current: currentPlan === 'Pro',
-      popular: true,
-      icon: Zap,
-      accent: 'text-emerald-500'
-    },
-    {
-      name: 'Premium',
-      price: 'MZN 3.000',
-      period: '/mês',
-      description: 'Poder total para profissionais.',
-      features: [
-        'Modelos de última geração (Gemini 1.5 Pro)',
-        'Geração de imagens ilimitada',
-        'Respostas mais rápidas',
-        'Acesso antecipado a novos recursos',
-        'Suporte VIP 24/7'
-      ],
-      current: currentPlan === 'Premium',
-      icon: Crown,
-      accent: 'text-emerald-600'
-    }
-  ];
 
   return (
     <div className="fixed inset-0 z-[250] bg-white dark:bg-zinc-950 animate-in fade-in duration-500 overflow-y-auto custom-scrollbar">
@@ -337,6 +321,10 @@ export const Billing: React.FC<BillingProps> = ({ onClose, currentPlan, subscrip
                 </div>
               )}
             </div>
+          </div>
+        ) : loadingPlans ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
           </div>
         ) : (
           <div className="flex md:grid md:grid-cols-3 gap-8 overflow-x-auto md:overflow-x-visible pb-12 snap-x snap-mandatory scroll-px-6">

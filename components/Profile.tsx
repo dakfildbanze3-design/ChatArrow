@@ -2,15 +2,18 @@ import React, { useState, useRef } from 'react';
 import { X, User, Mail, Calendar, Shield, Camera, Loader2 } from 'lucide-react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseService';
+import { useToast } from '../src/contexts/ToastContext';
 
 interface ProfileProps {
   user: SupabaseUser;
   onClose: () => void;
+  plan: string;
 }
 
-export const Profile: React.FC<ProfileProps> = ({ user, onClose }) => {
+export const Profile: React.FC<ProfileProps> = ({ user, onClose, plan }) => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { showToast } = useToast();
   
   const avatarUrl = user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.email || user.user_metadata?.email}&background=333&color=fff`;
   const fullName = user.user_metadata?.full_name || (user.email || user.user_metadata?.email)?.split('@')[0] || 'Usuário';
@@ -76,11 +79,15 @@ export const Profile: React.FC<ProfileProps> = ({ user, onClose }) => {
 
       if (error) throw error;
       
+      showToast('Foto de perfil atualizada!', 'success');
+      
       // Force a reload to update the UI globally
-      window.location.reload();
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error('Erro ao atualizar avatar:', error);
-      alert('Não foi possível atualizar a foto de perfil. Tente novamente.');
+      showToast('Erro ao atualizar foto de perfil.', 'error');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
@@ -162,6 +169,16 @@ export const Profile: React.FC<ProfileProps> = ({ user, onClose }) => {
                 <div>
                   <p className="text-sm text-white/50">Membro desde</p>
                   <p className="font-medium capitalize">{joinDate}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-white/50">Plano Atual</p>
+                  <p className="font-medium text-blue-400">{plan}</p>
                 </div>
               </div>
 
